@@ -2,8 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios'); // Ensure axios is required
+const { youtubedl, tiktokdl, twitterdl, savefrom } = require('@bochilteam/scraper');
 
-// ... (previous imports)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors({ origin: '*' }));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '/')));
 
 // Cobalt Mirror List (Backend-side)
 const COBALT_INSTANCES = [
@@ -54,6 +60,61 @@ async function fallbackToCobalt(url) {
         }
     }
     throw new Error('All Cobalt backend instances failed');
+}
+
+function mapCobaltFormats(data) {
+    const formats = [];
+    if (data.url) formats.push({ quality: 'Best', url: data.url, type: 'video' });
+    if (data.picker) {
+        data.picker.forEach(p => {
+            formats.push({ quality: 'Select', url: p.url, type: p.type });
+        });
+    }
+    if (data.audio) formats.push({ quality: 'Audio', url: data.audio, type: 'audio' });
+    return formats;
+}
+
+function mapFormats(data) {
+    const formats = [];
+
+    // Youtubedl structure from bochil usually has .video and .audio arrays or similar
+    if (data.video) {
+        Object.entries(data.video).forEach(([quality, widthOrDetails]) => {
+            // Sometimes it returns simple object { 'auto': 'link', '360p': 'link' }
+            // Or complex object. Accessing .download() usually gives link.
+            // Let's assume simplest: key is quality, value is async func or awaitable.
+            // Check docs: await youtubedl(url) -> returns object where values are promises or direct?
+            // Actually bochil youtubedl returns metadata + .video, .audio objects with download methods.
+            formats.push({
+                quality: quality,
+                itag: quality, // verify
+                url: 'WILL_RESOLVE_ON_DOWNLOAD', // We might need to resolve now or proxy?
+                // Be careful: resolving now might expire links.
+                // Better: Frontend requests specific quality -> Backend resolves -> Redirect.
+                type: 'video'
+            });
+        });
+    }
+
+    // Simpler approach: savefrom usually returns direct links array
+    if (Array.isArray(data)) {
+        data.forEach(item => {
+            if (item.url) {
+                formats.push({
+                    quality: item.quality || item.subname || 'Unknown',
+                    url: item.url,
+                    type: 'video'
+                });
+            }
+        });
+    }
+
+    // Default fallback if structure is unknown (pass raw for debug if needed)
+    if (formats.length === 0 && data.url) {
+        formats.push({ quality: 'Default', url: data.url, type: 'video' });
+    }
+
+    return formats;
 }
 
 // --- API: INFO ---
@@ -125,64 +186,45 @@ app.post('/api/info', async (req, res) => {
     }
 });
 
-function mapCobaltFormats(data) {
-    const formats = [];
-    if (data.url) formats.push({ quality: 'Best', url: data.url, type: 'video' });
-    if (data.picker) {
-        data.picker.forEach(p => {
-            formats.push({ quality: 'Select', url: p.url, type: p.type });
+
+// Youtubedl structure from bochil usually has .video and .audio arrays or similar
+if (data.video) {
+    Object.entries(data.video).forEach(([quality, widthOrDetails]) => {
+        // Sometimes it returns simple object { 'auto': 'link', '360p': 'link' }
+        // Or complex object. Accessing .download() usually gives link.
+        // Let's assume simplest: key is quality, value is async func or awaitable.
+        // Check docs: await youtubedl(url) -> returns object where values are promises or direct?
+        // Actually bochil youtubedl returns metadata + .video, .audio objects with download methods.
+        formats.push({
+            quality: quality,
+            itag: quality, // verify
+            url: 'WILL_RESOLVE_ON_DOWNLOAD', // We might need to resolve now or proxy?
+            // Be careful: resolving now might expire links.
+            // Better: Frontend requests specific quality -> Backend resolves -> Redirect.
+            type: 'video'
         });
-    }
-    if (data.audio) formats.push({ quality: 'Audio', url: data.audio, type: 'audio' });
-    return formats;
+    });
 }
 
-// ... (keep mapFormats and download endpoint logic)
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend Scraper running at http://0.0.0.0:${PORT}`);
-});
-function mapFormats(data) {
-    const formats = [];
-
-    // Youtubedl structure from bochil usually has .video and .audio arrays or similar
-    if (data.video) {
-        Object.entries(data.video).forEach(([quality, widthOrDetails]) => {
-            // Sometimes it returns simple object { 'auto': 'link', '360p': 'link' }
-            // Or complex object. Accessing .download() usually gives link.
-            // Let's assume simplest: key is quality, value is async func or awaitable.
-            // Check docs: await youtubedl(url) -> returns object where values are promises or direct?
-            // Actually bochil youtubedl returns metadata + .video, .audio objects with download methods.
+// Simpler approach: savefrom usually returns direct links array
+if (Array.isArray(data)) {
+    data.forEach(item => {
+        if (item.url) {
             formats.push({
-                quality: quality,
-                itag: quality, // verify
-                url: 'WILL_RESOLVE_ON_DOWNLOAD', // We might need to resolve now or proxy?
-                // Be careful: resolving now might expire links.
-                // Better: Frontend requests specific quality -> Backend resolves -> Redirect.
+                quality: item.quality || item.subname || 'Unknown',
+                url: item.url,
                 type: 'video'
             });
-        });
-    }
+        }
+    });
+}
 
-    // Simpler approach: savefrom usually returns direct links array
-    if (Array.isArray(data)) {
-        data.forEach(item => {
-            if (item.url) {
-                formats.push({
-                    quality: item.quality || item.subname || 'Unknown',
-                    url: item.url,
-                    type: 'video'
-                });
-            }
-        });
-    }
+// Default fallback if structure is unknown (pass raw for debug if needed)
+if (formats.length === 0 && data.url) {
+    formats.push({ quality: 'Default', url: data.url, type: 'video' });
+}
 
-    // Default fallback if structure is unknown (pass raw for debug if needed)
-    if (formats.length === 0 && data.url) {
-        formats.push({ quality: 'Default', url: data.url, type: 'video' });
-    }
-
-    return formats;
+return formats;
 }
 
 // --- API: DOWNLOAD ---
