@@ -27,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = urlInput.value.trim();
         if (!url) return showError('Please enter a valid URL');
 
+        // V6.4: INSTAGRAM BLOCK (User Request)
+        if (url.includes('instagram.com')) {
+            showError('⚠️ Instagram hizmeti, Instagram talebi üzerine kaldırılmıştır.');
+            return;
+        }
+
         setLoading(true);
         resultArea.classList.add('hidden');
         statusMsg.classList.add('hidden');
@@ -206,3 +212,23 @@ window.onclick = function (event) {
         }
     }
 };
+
+// V6.4: INSTAGRAM ICON HANDLER
+// When user clicks the Instagram icon, show the warning.
+document.addEventListener('DOMContentLoaded', () => {
+    const igIcon = document.querySelector('.fa-instagram');
+    if (igIcon) {
+        igIcon.style.cursor = 'pointer'; // Make it look clickable
+        igIcon.onclick = () => {
+            const statusMsg = document.getElementById('statusMsg');
+            statusMsg.textContent = '⚠️ Instagram hizmeti, Instagram talebi üzerine kaldırılmıştır.';
+            statusMsg.className = 'status-msg error';
+            statusMsg.classList.remove('hidden');
+
+            // Auto-hide after 3s
+            setTimeout(() => {
+                statusMsg.classList.add('hidden');
+            }, 3000);
+        };
+    }
+});
