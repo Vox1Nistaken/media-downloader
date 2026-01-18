@@ -84,8 +84,9 @@ app.get('/api/download', async (req, res) => {
     else if (quality === 'audio') formatArg = 'bestaudio/best';
 
     // Generate Safe Filename
+    // Switch to MKV to support 4K/VP9 without transcoding issues
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
-    const tempFilename = `${Date.now()}_${safeTitle}.mp4`;
+    const tempFilename = `${Date.now()}_${safeTitle}.mkv`;
     const tempPath = path.join(tempDir, tempFilename);
 
     try {
@@ -104,7 +105,7 @@ app.get('/api/download', async (req, res) => {
         const args = [
             url,
             '-f', formatArg,
-            '--merge-output-format', 'mp4',
+            '--merge-output-format', 'mkv', // MKV supports almost all codecs (VP9, AV1)
             '-o', tempPath,
             '--no-playlist',
             '--no-check-certificates',
@@ -143,7 +144,7 @@ app.get('/api/download', async (req, res) => {
             }
 
             // Send File to User
-            const userFilename = `${safeTitle}.mp4`;
+            const userFilename = `${safeTitle}.mkv`;
             res.download(tempPath, userFilename, (err) => {
                 if (err) console.error('Send Error:', err);
 
