@@ -81,15 +81,25 @@ try {
 // ---------------------------------------------------------
 async function fallbackToCobalt(url) {
     console.log('⚠️ Triggering Cobalt Fallback for:', url);
+    // Huge list of potential mirrors
     const instances = [
-        { url: 'https://api.cobalt.tools', endpoint: '/' }, // Official (strict)
-        { url: 'https://co.wuk.sh', endpoint: '/api/json' },
-        { url: 'https://cobalt.api.kwiatekmiki.pl', endpoint: '/api/json' },
+        { url: 'https://api.cobalt.tools', endpoint: '/' }, // Official
+        { url: 'https://cobalt.154.53.56.156.nip.io', endpoint: '/api/json' },
+        { url: 'https://cobalt.dani.guru', endpoint: '/api/json' },
+        { url: 'https://cobalt.nao.2020.day', endpoint: '/api/json' },
+        { url: 'https://dl.khub.win', endpoint: '/api/json' },
+        { url: 'https://cobalt.q13.sbs', endpoint: '/api/json' },
+        { url: 'https://c.haber.lol', endpoint: '/api/json' },
+        { url: 'https://cobalt.kwiatekmiki.pl', endpoint: '/api/json' },
         { url: 'https://api.cobalt.best', endpoint: '/' },
-        { url: 'https://cobalt.publications.wiki', endpoint: '/api/json' }
+        { url: 'https://co.wuk.sh', endpoint: '/api/json' },
+        { url: 'https://cobalt.publications.wiki', endpoint: '/api/json' },
+        { url: 'https://cobalt-api.kwiatekmiki.pl', endpoint: '/api/json' }
     ];
 
     const errors = [];
+    // Randomize order to distribute load and avoid hitting same dead one first
+    const shuffled = instances.sort(() => 0.5 - Math.random());
 
     for (const instance of instances) {
         try {
