@@ -39,105 +39,139 @@ function mapFormats(data) {
                 formats.push({
                     quality: item.quality || item.subname || 'Unknown',
                     url: item.url,
-                    type: 'video'
-                });
-            }
-        });
-    }
+                    // Browser Management
+                    async function getBrowser() {
+                    return await puppeteer.launch({
+                        args: [
+                            '--no-sandbox',
+                            '--disable-setuid-sandbox',
+                            '--disable-dev-shm-usage',
+                            '--disable-accelerated-2d-canvas',
+                            '--no-first-run',
+                            '--no-zygote',
+                            '--single-process',
+                            '--disable-gpu'
+                        ],
+                        headless: 'new',
+                        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
+                    });
+                }
 
-    // Default fallback if structure is unknown (pass raw for debug if needed)
-    if (formats.length === 0 && data.url) {
-        formats.push({ quality: 'Default', url: data.url, type: 'video' });
-    }
+// Scrape Logic (Targeting SaveFrom via UI)
+async function scrapeVideo(videoUrl) {
+                        let browser = null;
+                        try {
+                            console.log('🚀 Launching Puppeteer for:', videoUrl);
+                            browser = await getBrowser();
+                            const page = await browser.newPage();
 
-    return formats;
-}
+                            // Block heavy resources
+                            await page.setRequestInterception(true);
+                            page.on('request', (req) => {
+                                if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+                                    req.abort();
+                                } else {
+                                    req.continue();
+                                }
+                            });
+
+                            // Go to SaveFrom
+                            await page.goto('https://en.savefrom.net/1-youtube-video-downloader-360/', {
+                                waitUntil: 'domcontentloaded',
+                                timeout: 15000
+                            });
+
+                            // Type URL
+                            await page.type('#sf_url', videoUrl);
+                            await page.click('#sf_submit');
+
+                            // Wait for result
+                            console.log('⏳ Waiting for download links...');
+
+                            // Wait for the result box to appear (timeout 15s)
+                            await page.waitForSelector('.def-btn-box', { timeout: 15000 });
+
+                            // Extract Links
+                            const results = await page.evaluate(() => {
+                                const links = [];
+                                // Primary link
+                                const mainBtn = document.querySelector('.link-download');
+                                if (mainBtn) {
+                                    links.push({
+                                        quality: 'Best',
+                                        url: mainBtn.getAttribute('href'),
+                                        type: 'video'
+                                    });
+                                }
+
+                                // Other links (sometimes in drop-down)
+                                // SaveFrom structure is complex, often main button is enough.
+                                return links;
+                            });
+
+                            if (!results || results.length === 0) {
+                                throw new Error('No links found on page');
+                            }
+
+                            const title = await page.evaluate(() => {
+                                const titleEl = document.querySelector('.title, .info-box');
+                                return titleEl ? titleEl.innerText.trim() : 'Video';
+                            });
+
+                            return {
+                                title: title,
+                                thumbnail: 'https://placehold.co/600x400?text=Puppeteer+Success',
+                                formats: results
+                            };
+
+                        } catch (error) {
+                            console.error('Puppeteer Error:', error.message);
+                            throw error;
+                        } finally {
+                            if (browser) await browser.close();
+                        }
+                    }
 
 // --- API: INFO ---
 app.post('/api/info', async (req, res) => {
-    try {
-        const { url } = req.body;
-        if (!url) return res.status(400).json({ error: 'URL required' });
+                        try {
+                            const { url } = req.body;
+                            if (!url) return res.status(400).json({ error: 'URL required' });
 
-        console.log('Fetching info for:', url);
-        let data;
+                            const data = await scrapeVideo(url);
 
-        // Try Scraper
-        try {
-            if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                // Try youtubedl first
-                try {
-                    data = await youtubedl(url);
-                } catch (e) {
-                    console.log('youtubedl failed, trying savefrom...');
-                    data = await savefrom(url);
-                }
-            } else if (url.includes('tiktok.com')) {
-                data = await tiktokdl(url);
-            } else if (url.includes('twitter.com') || url.includes('x.com')) {
-                data = await twitterdl(url);
-            } else if (url.includes('instagram.com')) {
-                try {
-                    const { instagramdl } = require('@bochilteam/scraper');
-                    data = await instagramdl(url);
-                } catch (e) {
-                    data = await savefrom(url);
-                }
-            } else {
-                data = await savefrom(url);
-            }
-        } catch (scraperError) {
-            console.warn('Scraper Failed:', scraperError.message);
-        }
+                            return res.json({
+                                platform: 'Puppeteer',
+                                title: data.title,
+                                thumbnail: data.thumbnail,
+                                formats: data.formats
+                            });
 
-        if (!data) throw new Error('Could not fetch video data. Please check the URL.');
+                        } catch (error) {
+                            console.error('Final Error:', error);
+                            res.status(500).json({ error: 'Failed to fetch media. ' + error.message });
+                        }
+                    });
 
-        return res.json({
-            platform: 'Scraper',
-            title: data.title || data.meta?.title || 'Unknown Title',
-            thumbnail: data.thumbnail || data.meta?.thumbnail || 'https://placehold.co/600x400',
-            formats: mapFormats(data)
-        });
+                // --- API: DOWNLOAD ---
+                // Redirect to the direct link fetched by Puppeteer
+                app.get('/api/download', async (req, res) => {
+                    const { url } = req.query;
+                    if (!url) return res.status(400).send('URL missing');
 
-    } catch (error) {
-        console.error('Final Error:', error);
-        res.status(500).json({ error: 'Failed to fetch media. ' + error.message });
-    }
-});
+                    // Puppeteer already returns direct links, frontend should use them directly.
+                    // But if we need to proxy...
+                    try {
+                        const data = await scrapeVideo(url);
+                        if (data.formats && data.formats.length > 0) {
+                            return res.redirect(data.formats[0].url);
+                        }
+                        res.status(404).send('Link expired or not found');
+                    } catch (e) {
+                        res.status(500).send('Error: ' + e.message);
+                    }
+                });
 
-
-
-// --- API: DOWNLOAD ---
-// Since link expiration is an issue, we resolve link here if needed
-app.get('/api/download', async (req, res) => {
-    const { url, quality } = req.query;
-    try {
-        // Re-scrape to get fresh link
-        if (url.includes('youtube')) {
-            const data = await youtubedl(url);
-            // Check if quality exists in video object
-            if (data.video && data.video[quality]) {
-                const downloadMethod = data.video[quality].download;
-                if (typeof downloadMethod === 'function') {
-                    const link = await downloadMethod();
-                    if (link) return res.redirect(link);
-                }
-            }
-        } else {
-            // For others, we try savefrom again or similar
-            const data = await savefrom(url);
-            if (Array.isArray(data)) {
-                const match = data.find(item => item.quality === quality || item.url);
-                if (match && match.url) return res.redirect(match.url);
-            }
-        }
-        // Fallback
-        res.status(400).send('Download link generation failed');
-    } catch (e) {
-        res.status(500).send('Error: ' + e.message);
-    }
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend Scraper running at http://0.0.0.0:${PORT}`);
-});
+                app.listen(PORT, '0.0.0.0', () => {
+                    console.log(`Backend Puppeteer Service running at http://0.0.0.0:${PORT}`);
+                });

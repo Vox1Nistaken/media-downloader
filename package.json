@@ -8,14 +8,9 @@
         "dev": "nodemon server.js"
     },
     "dependencies": {
-        "@bochilteam/scraper": "^5.0.1",
-        "@distube/ytdl-core": "^4.16.12",
-        "@mrnima/tiktok-downloader": "^1.0.0",
         "cors": "^2.8.5",
         "express": "^4.18.2",
-        "fluent-ffmpeg": "^2.1.2",
-        "instagram-url-direct": "^1.2.2",
-        "twitter-downloader": "^1.1.8"
+        "puppeteer": "^24.35.0"
     },
     "devDependencies": {
         "nodemon": "^3.0.2"
