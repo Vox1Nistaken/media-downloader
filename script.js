@@ -90,8 +90,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const q = qualitySelect.value;
         const qLabel = qualitySelect.options[qualitySelect.selectedIndex].text;
 
-        // Build Download Link
+        // Build Download Link - WE USE FETCH NOW to catch header errors before opening window
         const dlUrl = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}&quality=${q}&title=${encodeURIComponent(data.title)}`;
+
+        // Check availability logic
+        // We actually can't "pre-check" easily without triggering the download stream.
+        // So we will just point the button to the link, BUT we will enhance the 'resultArea' logic.
 
         resultArea.innerHTML = `
             <img src="${data.thumbnail}" class="result-thumb" alt="thumb">
@@ -102,77 +106,129 @@ document.addEventListener('DOMContentLoaded', () => {
                     Target: <span style="color:#00ff88">${qLabel}</span>
                 </p>
                 
-                <a href="${dlUrl}" target="_blank" class="dl-link primary-btn" style="text-align:center; margin-top:15px; width:auto; padding:10px 30px;">
+                <button id="realDownloadBtn" class="dl-link primary-btn" style="text-align:center; margin-top:15px; width:auto; padding:10px 30px;">
                     <i class="fa-solid fa-download"></i> Download Now
-                </a>
+                </button>
+                <div id="dlStatus" class="status-msg hidden" style="margin-top:10px;"></div>
             </div>
         `;
-    }
 
-    // --- UTIL ---
-    function setLoading(bool) {
-        const btn = downloadBtn;
-        const txt = btn.querySelector('.btn-content');
-        const loader = btn.querySelector('.loader');
+        // Handle Logic
+        document.getElementById('realDownloadBtn').onclick = async () => {
+            const btn = document.getElementById('realDownloadBtn');
+            const status = document.getElementById('dlStatus');
 
-        btn.disabled = bool;
-        if (bool) {
-            txt.classList.add('hidden');
-            loader.classList.remove('hidden');
-        } else {
-            txt.classList.remove('hidden');
-            loader.classList.add('hidden');
-        }
-    }
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+            status.classList.add('hidden');
 
-    function showError(msg) {
-        statusMsg.textContent = msg;
-        statusMsg.className = 'status-msg error';
-        statusMsg.classList.remove('hidden');
-    }
-
-    function formatDuration(sec) {
-        if (!sec) return '--:--';
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    }
-
-    // --- 4. ADMIN: COOKIE SAVE ---
-    const saveCookiesBtn = document.getElementById('saveCookiesBtn');
-    if (saveCookiesBtn) {
-        saveCookiesBtn.onclick = async () => {
-            const content = document.getElementById('cookieInput').value;
-            const msg = document.getElementById('cookieMsg');
-
-            if (content.length < 50) {
-                msg.textContent = 'Error: Cookie content too short!';
-                msg.style.color = 'red';
-                return;
-            }
-
-            saveCookiesBtn.disabled = true;
-            saveCookiesBtn.textContent = 'Saving...';
-
+            // Try fetch first to catch JSON errors
             try {
-                const res = await fetch('/api/admin/cookies', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cookies: content })
-                });
-
-                if (res.ok) {
-                    msg.textContext = 'Saved!';
-                    saveCookiesBtn.textContent = '✅ Success! Refreshing...';
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    throw new Error('Save failed');
+                const res = await fetch(dlUrl);
+                if (res.status === 403) {
+                    const json = await res.json();
+                    if (json.error === 'RESTRICTED_CONTENT') {
+                        status.textContent = '🔒 Restricted Video: YouTube blocked this request (Age/Region). Try Admin Cookies.';
+                        status.className = 'status-msg error';
+                        status.classList.remove('hidden');
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-download"></i> Retry';
+                        return;
+                    }
                 }
+
+                if (!res.ok) throw new Error('Download failed');
+
+                // If OK, we need to download the blob
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}.mkv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                btn.innerHTML = '✅ Complete';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-download"></i> Download Again';
+                }, 3000);
+
             } catch (e) {
-                saveCookiesBtn.textContent = 'Error';
-                msg.textContent = 'Failed to save.';
-                msg.style.color = 'red';
+                console.error(e);
+                status.textContent = 'Server Error: Check logs or try another video.';
+                status.className = 'status-msg error';
+                status.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> Retry';
             }
         };
-    }
-});
+
+        // --- UTIL ---
+        function setLoading(bool) {
+            const btn = downloadBtn;
+            const txt = btn.querySelector('.btn-content');
+            const loader = btn.querySelector('.loader');
+
+            btn.disabled = bool;
+            if (bool) {
+                txt.classList.add('hidden');
+                loader.classList.remove('hidden');
+            } else {
+                txt.classList.remove('hidden');
+                loader.classList.add('hidden');
+            }
+        }
+
+        function showError(msg) {
+            statusMsg.textContent = msg;
+            statusMsg.className = 'status-msg error';
+            statusMsg.classList.remove('hidden');
+        }
+
+        function formatDuration(sec) {
+            if (!sec) return '--:--';
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // --- 4. ADMIN: COOKIE SAVE ---
+        const saveCookiesBtn = document.getElementById('saveCookiesBtn');
+        if (saveCookiesBtn) {
+            saveCookiesBtn.onclick = async () => {
+                const content = document.getElementById('cookieInput').value;
+                const msg = document.getElementById('cookieMsg');
+
+                if (content.length < 50) {
+                    msg.textContent = 'Error: Cookie content too short!';
+                    msg.style.color = 'red';
+                    return;
+                }
+
+                saveCookiesBtn.disabled = true;
+                saveCookiesBtn.textContent = 'Saving...';
+
+                try {
+                    const res = await fetch('/api/admin/cookies', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cookies: content })
+                    });
+
+                    if (res.ok) {
+                        msg.textContext = 'Saved!';
+                        saveCookiesBtn.textContent = '✅ Success! Refreshing...';
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        throw new Error('Save failed');
+                    }
+                } catch (e) {
+                    saveCookiesBtn.textContent = 'Error';
+                    msg.textContent = 'Failed to save.';
+                    msg.style.color = 'red';
+                }
+            };
+        }
+    });

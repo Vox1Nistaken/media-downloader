@@ -152,14 +152,20 @@ app.get('/api/download', async (req, res) => {
         '--verbose'
     ];
 
-    // V4.2 AUTH STRATEGY: COOKIES ONLY
-    // OAuth is deprecated/blocked. We rely purely on cookies.txt being present.
-    // If no cookies are uploaded, we try 'tv' mode as a guest, but it might fail.
-    args.push('--extractor-args', 'youtube:player_client=tv');
-
+    // V4.3 SMART CLIENT SELECTION
+    // - If we have cookies (Owner Mode): Use 'tv' client for Max Quality (4K).
+    // - If Guest: Use default/android. It might be 1080p or 144p depending on luck, but it WON'T crash with "Login Required".
     if (hasCookies) {
         args.push('--cookies', COOKIE_PATH);
+        args.push('--extractor-args', 'youtube:player_client=tv');
+    } else {
+        // Guest Mode: Try to be stealthy, don't force TV login
+        args.push('--extractor-args', 'youtube:player_client=android');
     }
+
+    // Resilience Flags
+    args.push('--ignore-errors'); // Don't crash on minor playlist/subs errors
+    args.push('--no-warnings');
 
     // 3. Execute
     try {
@@ -171,9 +177,17 @@ app.get('/api/download', async (req, res) => {
 
         process.on('close', code => {
             if (code !== 0) {
+                // ANALYZE ERROR - Graceful Degradation
+                const err = errorLog.toLowerCase();
+
+                if (err.includes('sign in') || err.includes('login required') || err.includes('content is not available')) {
+                    console.warn(`[Restricted] Video requires auth: ${url}`);
+                    return res.status(403).json({ error: 'RESTRICTED_CONTENT' });
+                }
+
+                // Genuine Failure
                 console.error(`[Download Fail] Code: ${code}`);
-                // Sanitize log
-                const safeLog = errorLog.slice(-1000).replace(/\n/g, ' ');
+                const safeLog = errorLog.slice(-500).replace(/\n/g, ' ');
                 return res.status(500).send(`Server Error: ${safeLog}`);
             }
 
