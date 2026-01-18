@@ -27,8 +27,6 @@
             </div>
             <nav>
                 <a href="#" class="active">Downloader</a>
-                <a href="#" onclick="document.getElementById('settingsModal').classList.add('show')"><i
-                        class="fa-solid fa-gear"></i></a>
             </nav>
         </header>
 
@@ -82,6 +80,33 @@
                 <!-- Injected via JS -->
             </div>
 
+            <!-- SUPPORT / DONATE SECTION (Directly on Main Page) -->
+            <div class="glass-card" style="margin-top: 30px; text-align: center;">
+                <h2 style="margin-bottom: 15px; font-size: 1.5rem;">☕ Support the Project</h2>
+                <div class="support-links">
+                    <a href="https://www.patreon.com/15430131/join" target="_blank" class="patreon-btn"
+                        style="display: inline-block; background: #FF424D; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-bottom: 15px;">
+                        <i class="fa-brands fa-patreon"></i> Join Patreon
+                    </a>
+
+                    <div class="crypto-box" style="margin-top: 10px;">
+                        <div style="margin-bottom: 5px; color: #ffd700;"><i class="fa-brands fa-bitcoin"></i> USDT
+                            (TRC20)</div>
+                        <div
+                            style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px;">
+                            <code id="walletAddr"
+                                style="font-size: 0.85rem; color: #00ff88; word-break: break-all;">TBSoPT7MxnRsqW6p6MwvRAN1mGYTuUfxw</code>
+                            <button
+                                onclick="navigator.clipboard.writeText(document.getElementById('walletAddr').innerText); alert('Copied!')"
+                                class="icon-btn"
+                                style="background: rgba(255,255,255,0.1); width: 30px; height: 30px; font-size: 0.9rem;">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- History -->
             <div id="historySection" class="history-section hidden">
                 <h3>Recent Downloads</h3>
@@ -90,65 +115,11 @@
         </main>
 
         <footer>
-            <p>Running V4 Phoenix Engine • Secure & Private</p>
+            <p>Running V6 Phoenix Engine • Secure & Private</p>
         </footer>
     </div>
 
-    <!-- Support Modal -->
-    <div id="supportModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal"
-                onclick="document.getElementById('supportModal').classList.remove('show')">&times;</span>
-            <h2>☕ Fuel the Project</h2>
-            <p>Servers aren't free! Support to keep 4K downloads alive.</p>
-            <div class="support-links">
-                <a href="https://www.patreon.com/15430131/join" target="_blank" class="patreon-btn">
-                    <i class="fa-brands fa-patreon"></i> Join Patreon
-                </a>
-                <div class="crypto-box">
-                    <span><i class="fa-brands fa-bitcoin"></i> USDT (TRC20)</span>
-                    <code id="walletAddr">TBSoPT7MxnRsqW6p6MwvRAN1mGYTuUfxw</code>
-                    <button
-                        onclick="navigator.clipboard.writeText(document.getElementById('walletAddr').innerText)">Copy</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ADMIN SETTINGS MODAL -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
-            <span class="close-modal"
-                onclick="document.getElementById('settingsModal').classList.remove('show')">&times;</span>
-            <h2>⚙️ System Settings</h2>
-            <p>Authentication repair for 4K downloads.</p>
-
-            <div class="glass-card" style="padding: 20px; margin-top: 15px; text-align: left;">
-                <label style="color: #ff0055; font-weight: bold; display: block; margin-bottom: 10px;">
-                    <i class="fa-solid fa-cookie-bite"></i> Update Cookies (Netscape Format)
-                </label>
-                <textarea id="cookieInput" rows="6"
-                    placeholder="# Netscape HTTP Cookie File&#10;.youtube.com    TRUE    /    FALSE    1756612345    VISITOR_INFO1_LIVE    ..."
-                    style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; font-size: 0.7rem;"></textarea>
-                <button id="saveCookiesBtn" class="primary-btn"
-                    style="margin-top: 10px; font-size: 0.9rem; padding: 12px;">
-                    <i class="fa-solid fa-save"></i> Save & Restart Engine
-                </button>
-                <p id="cookieMsg" style="font-size: 0.8rem; margin-top: 5px;"></p>
-                <div style="font-size: 0.8rem; color: #888; margin-top: 10px;">
-                    ℹ️ Use a "Get cookies.txt" extension in Chrome, export from YouTube, and paste here.
-                </div>
-            </div>
-
-            <div class="support-links" style="margin-top: 20px;">
-                <a href="#"
-                    onclick="document.getElementById('supportModal').classList.add('show'); document.getElementById('settingsModal').classList.remove('show')"
-                    class="patreon-btn">
-                    <i class="fa-solid fa-heart"></i> Donate
-                </a>
-            </div>
-        </div>
-    </div>
+    <!-- Modals Removed as requested -->
 
     <script src="script.js"></script>
 </body>

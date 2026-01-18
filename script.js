@@ -169,41 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
-    // --- 4. ADMIN: COOKIE SAVE ---
-    const saveCookiesBtn = document.getElementById('saveCookiesBtn');
-    if (saveCookiesBtn) {
-        saveCookiesBtn.onclick = async () => {
-            const content = document.getElementById('cookieInput').value;
-            const msg = document.getElementById('cookieMsg');
-
-            if (content.length < 50) {
-                msg.textContent = 'Error: Cookie content too short!';
-                msg.style.color = 'red';
-                return;
-            }
-
-            saveCookiesBtn.disabled = true;
-            saveCookiesBtn.textContent = 'Saving...';
-
-            try {
-                const res = await fetch('/api/admin/cookies', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cookies: content })
-                });
-
-                if (res.ok) {
-                    msg.textContent = 'Saved!';
-                    saveCookiesBtn.textContent = '✅ Success! Refreshing...';
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    throw new Error('Save failed');
-                }
-            } catch (e) {
-                saveCookiesBtn.textContent = 'Error';
-                msg.textContent = 'Failed to save.';
-                msg.style.color = 'red';
-            }
-        };
-    }
+    // --- 3. COOKIES REMOVED (Admin Panel Hidden) ---
+    // User requested to remove the UI. Logic requires manual server access if needed.
 });
