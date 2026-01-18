@@ -2,99 +2,126 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const ytDlp = require('yt-dlp-exec');
 
-// --- V3 CORE: STATIC FFMPEG ENGINE ---
-// This guarantees we have a working ffmpeg binary, regardless of VPS OS.
+// --- V4 CORE: SYSTEM DEPENDENCIES ---
 const ffmpegPath = require('ffmpeg-static');
-console.log(`[V3 Engine] ffmpeg-static loaded at: ${ffmpegPath}`);
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 
-// Temp Directory for High Quality Merge operations
+// Temp Directory
 const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
-// --- API: Get Video Info ---
+// Auth File Path
+const COOKIE_PATH = path.join(__dirname, 'cookies.txt');
+
+// --- API: HEALTH CHECK (The "Engine Light") ---
+app.get('/api/health', (req, res) => {
+    let ffmpegStatus = 'missing';
+    let authStatus = 'missing';
+    let ipStatus = 'unknown';
+
+    // 1. Check FFmpeg
+    try {
+        if (fs.existsSync(ffmpegPath)) {
+            // Ensure executable
+            try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
+            ffmpegStatus = 'ready';
+        }
+    } catch (e) { ffmpegStatus = 'error'; }
+
+    // 2. Check Auth (Cookies)
+    if (fs.existsSync(COOKIE_PATH)) {
+        const cookies = fs.readFileSync(COOKIE_PATH, 'utf8');
+        if (cookies.length > 10) authStatus = 'active';
+    }
+
+    res.json({
+        status: 'online',
+        ffmpeg: ffmpegStatus,
+        auth: authStatus,
+        version: 'v4.0.0'
+    });
+});
+
+// --- API: INFO FETCH ---
 app.post('/api/info', async (req, res) => {
     try {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL required' });
 
-        console.log(`[Info] Fetching metadata for: ${url}`);
+        console.log(`[V4 Info] Fetching: ${url}`);
 
-        const output = await ytDlp(url, {
+        const args = {
             dumpSingleJson: true,
             noPlaylist: true,
             noCheckCertificates: true,
-            noWarnings: true,
             preferFreeFormats: true,
-            extractorArgs: 'youtube:player_client=android', // Spoof Android
-            forceIpv4: true // Bypass 403
-        });
+            forceIpv4: true
+        };
 
-        // Simplified Video/Audio mapping
+        // Use TV client if authenticated, else Android (to avoid login wall for public data)
+        const hasCookies = fs.existsSync(COOKIE_PATH);
+        if (hasCookies) {
+            args.cookies = COOKIE_PATH;
+            args.extractorArgs = 'youtube:player_client=tv';
+        } else {
+            args.extractorArgs = 'youtube:player_client=android';
+        }
+
+        const output = await ytDlp(url, args);
+
         const formats = (output.formats || []).map(f => ({
             quality: f.format_note || f.resolution || 'unknown',
             ext: f.ext,
             url: f.url,
             hasAudio: f.acodec !== 'none',
-            hasVideo: f.vcodec !== 'none'
+            hasVideo: f.vcodec !== 'none',
+            height: f.height
         })).filter(f => f.url);
 
         return res.json({
-            platform: 'yt-dlp',
             title: output.title,
             thumbnail: output.thumbnail,
             duration: output.duration,
             formats: formats,
-            originalUrl: url
+            platform: 'YouTube' // Simplified for now
         });
 
     } catch (error) {
-        console.error('[Yt-Dlp Error]:', error);
-        res.status(500).json({ error: 'Failed to fetch media. ' + error.message });
+        console.error('[Info Error]', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch video info' });
     }
 });
 
-// --- API: High Quality Download (V3 Engine) ---
+// --- API: DOWNLOAD (Strict Mode) ---
 app.get('/api/download', async (req, res) => {
     const { url, quality, title } = req.query;
     if (!url) return res.status(400).send('URL required');
 
-    console.log(`[Download] Starting V3 Task: ${url} [${quality}]`);
-
-    // 1. Determine Format Strategy - STRICT MODE (No Fallbacks)
-    // ChatGPT explanation was correct: We need 'bv*+ba' (Best Video + Best Audio) to get 4K/1080p.
-    // We intentionally removed failure fallbacks to ensure we don't get 144p silently.
-    let formatArg = 'bv*+ba/b';
-
-    // Strict resolution filters
-    if (quality === '1080p') formatArg = 'bv*[height=1080]+ba';
-    else if (quality === '720p') formatArg = 'bv*[height=720]+ba';
-    else if (quality === '480p') formatArg = 'bv*[height=480]+ba';
-    else if (quality === 'audio') formatArg = 'ba/b';
-
-    // 2. Output Path
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
     const tempFilename = `${Date.now()}_${safeTitle}.mkv`;
     const tempPath = path.join(tempDir, tempFilename);
+    const hasCookies = fs.existsSync(COOKIE_PATH);
 
-    // Ensure Permissions on ffmpeg-static
-    try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
+    console.log(`[V4 Download] ${url} [${quality}] (Auth: ${hasCookies})`);
 
-    // Check for cookies.txt
-    const cookiePath = path.join(__dirname, 'cookies.txt');
-    const hasCookies = fs.existsSync(cookiePath);
-    if (hasCookies) console.log('[V3 Engine] Using cookies.txt for auth');
+    // 1. Format Selection (Strict)
+    let formatArg = 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b'; // Fallback chain
 
-    // 3. Construct arguments for yt-dlp
+    if (quality === '1080p') formatArg = 'bv*[height=1080]+ba';
+    else if (quality === '720p') formatArg = 'bv*[height=720]+ba';
+    else if (quality === '480p') formatArg = 'bv*[height=480]+ba';
+    else if (quality === 'audio') formatArg = 'ba';
+
+    // 2. Build Args
     const args = [
         url,
         '-f', formatArg,
@@ -102,74 +129,48 @@ app.get('/api/download', async (req, res) => {
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
-        '--extractor-args', 'youtube:player_client=tv',
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
         '--verbose'
     ];
 
     if (hasCookies) {
-        args.push('--cookies', cookiePath);
+        args.push('--cookies', COOKIE_PATH);
+        args.push('--extractor-args', 'youtube:player_client=tv');
+    } else {
+        // Fallback to iOS if no auth (risk of 403, but better than nothing)
+        args.push('--extractor-args', 'youtube:player_client=ios');
     }
-    // Note: If using OAuth2 cache, yt-dlp picks it up automatically from ~/.cache/yt-dlp
-    // We don't need to pass an arg for that, just ensure the process has access.
 
-    console.log(`[V3 Engine] Executing with format: ${formatArg}`);
-
+    // 3. Execute
     try {
         const process = spawn('yt-dlp', args);
+        let errorLog = '';
 
-        // Capture logs with timestamp
-        let processLog = '';
-        process.stderr.on('data', (d) => {
-            const msg = d.toString();
-            // console.log(msg); 
-            processLog += msg;
-        });
+        process.stderr.on('data', d => errorLog += d.toString());
 
-        process.on('close', (code) => {
+        process.on('close', code => {
             if (code !== 0) {
-                console.error(`[V3 Error] Process exited with code ${code}`);
-                // Return last 1500 chars of log to user
-                const errDetails = processLog.slice(-1500).replace(/\n/g, ' ');
-                return res.status(500).send(`Engine Error: ${errDetails}`);
+                console.error(`[Download Fail] Code: ${code}`);
+                // Sanitize log
+                const safeLog = errorLog.slice(-1000).replace(/\n/g, ' ');
+                return res.status(500).send(`Server Error: ${safeLog}`);
             }
 
-            if (!fs.existsSync(tempPath)) {
-                return res.status(500).send('Error: Output file not found after download.');
-            }
+            if (!fs.existsSync(tempPath)) return res.status(500).send('File missing after download');
 
-            console.log(`[V3 Success] Sending file: ${tempPath}`);
-            res.download(tempPath, `${safeTitle}.mkv`, (err) => {
-                if (err) console.error('Send Error:', err);
-                // Cleanup
-                fs.unlink(tempPath, (e) => { if (e) console.error('Cleanup Warning:', e); });
+            res.download(tempPath, `${safeTitle}.mkv`, err => {
+                if (err) console.error('Send Error', err);
+                fs.unlink(tempPath, () => { });
             });
         });
 
-    } catch (err) {
-        console.error('Spawn Error:', err);
+    } catch (e) {
         res.status(500).send('Internal Server Error');
     }
 });
 
-// Start Server & Self-Test
-app.listen(PORT, '0.0.0.0', async () => {
-    console.log(`\n=== MEDIA DOWNLOADER V3.1 ENGINE STARTED ===`);
-    console.log(`Port: ${PORT}`);
-    console.log(`FFmpeg Path: ${ffmpegPath}`);
-
-    // Self-Test: Verification of FFmpeg
-    try {
-        const { execSync } = require('child_process');
-        // Ensure executable
-        try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
-
-        const version = execSync(`${ffmpegPath} -version`).toString().split('\n')[0];
-        console.log(`✅ FFmpeg Verified: ${version}`);
-    } catch (e) {
-        console.error(`❌ FFmpeg Verification FAILED: ${e.message}`);
-        console.error(`CRITICAL: High Quality merges will fail.`);
-    }
-    console.log(`============================================\n`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Phoenix V4 Engine running on ${PORT}`);
+    console.log(`FFmpeg: ${ffmpegPath}`);
 });
