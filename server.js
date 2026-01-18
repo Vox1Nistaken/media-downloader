@@ -122,28 +122,29 @@ app.get('/api/download', async (req, res) => {
     if (!url) return res.status(400).send('URL required');
 
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
-    const tempFilename = `${Date.now()}_${safeTitle}.mkv`;
-    const tempPath = path.join(tempDir, tempFilename);
     const hasCookies = fs.existsSync(COOKIE_PATH);
 
     console.log(`[V4 Download] ${url} [${quality}] (Auth: ${hasCookies})`);
 
-    // 1. Format Selection (Relaxed Strict)
-    // We use <= to catch "Best available up to X". 
-    // e.g. If 1080p is missing but 720p exists, 1080p request will get 720p instead of crashing.
-    let formatArg = 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b';
+    // V5: STRICT MP4 & 1080p/2K
+    // User requested: "4k boşver, 1080p/2k olsun, MP4 olsun"
+    // Strategy: Prefer native MP4 (h264/aac). If not available, download best and merge to MP4.
+    let formatArg = 'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[ext=mp4]/best';
 
-    // Use <= to be safe. "Strict" meant "Don't fall back to 144p", not "Fail if pixel exact match missing"
-    if (quality === '1080p') formatArg = 'bv*[height<=1080]+ba/b';
-    else if (quality === '720p') formatArg = 'bv*[height<=720]+ba/b';
-    else if (quality === '480p') formatArg = 'bv*[height<=480]+ba/b';
-    else if (quality === 'audio') formatArg = 'ba';
+    if (quality === 'highest') formatArg = 'bestvideo[height<=1440]+bestaudio/bestvideo+bestaudio/best'; // Cap at 2K (1440p)
+    else if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best';
+    else if (quality === 'audio') formatArg = 'bestaudio/best';
 
     // 2. Build Args
+    const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+    const tempFilename = `${Date.now()}_${safeTitle}.mp4`; // Ext is .mp4 now
+    const tempPath = path.join(tempDir, tempFilename);
+
     const args = [
         url,
         '-f', formatArg,
-        '--merge-output-format', 'mkv',
+        '--merge-output-format', 'mp4', // FORCE MP4 CONTAINER
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
@@ -152,15 +153,12 @@ app.get('/api/download', async (req, res) => {
         '--verbose'
     ];
 
-    // V4.3 SMART CLIENT SELECTION
-    // - If we have cookies (Owner Mode): Use 'tv' client for Max Quality (4K).
-    // - If Guest: Use default/android. It might be 1080p or 144p depending on luck, but it WON'T crash with "Login Required".
+    // V5 Client Strategy: Android (Most compatible for 1080p without Strict Auth)
+    args.push('--extractor-args', 'youtube:player_client=android');
+
+    // Optional Cookies (Use if available, but don't crash if not)
     if (hasCookies) {
         args.push('--cookies', COOKIE_PATH);
-        args.push('--extractor-args', 'youtube:player_client=tv');
-    } else {
-        // Guest Mode: Try to be stealthy, don't force TV login
-        args.push('--extractor-args', 'youtube:player_client=android');
     }
 
     // Resilience Flags
@@ -193,7 +191,7 @@ app.get('/api/download', async (req, res) => {
 
             if (!fs.existsSync(tempPath)) return res.status(500).send('File missing after download');
 
-            res.download(tempPath, `${safeTitle}.mkv`, err => {
+            res.download(tempPath, `${safeTitle}.mp4`, err => {
                 if (err) console.error('Send Error', err);
                 fs.unlink(tempPath, () => { });
             });

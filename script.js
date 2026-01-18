@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}.mkv`;
+                a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}.mp4`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
