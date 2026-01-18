@@ -95,8 +95,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const dynamicDlUrl = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}&quality=${currentQ}&title=${encodeURIComponent(data.title)}`;
 
             btn.disabled = true;
+            // Initial State
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             status.classList.add('hidden');
+
+            // --- PROGRESS ANIMATION ---
+            const stages = [
+                '⏳ Connecting...',
+                '⬇️ Downloading from Source...',
+                '🔨 Merging Audio & Video...',
+                '📦 Finalizing File...',
+                '🚀 Sending to You...'
+            ];
+            let stageIndex = 0;
+
+            const progressInterval = setInterval(() => {
+                stageIndex = (stageIndex + 1) % stages.length;
+                if (btn.disabled) {
+                    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${stages[stageIndex]}`;
+                }
+            }, 4000);
 
             try {
                 // Check Access First
@@ -110,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         status.classList.remove('hidden');
                         btn.disabled = false;
                         btn.innerHTML = '<i class="fa-solid fa-download"></i> Retry';
+                        clearInterval(progressInterval);
                         return;
                     }
                 }
@@ -124,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Adjust extension based on type
                 let ext = 'mp4';
-                if (currentQ === 'audio') ext = 'mp3'; // Hint for the filename (though server sends .mp4 container usually)
+                if (currentQ === 'audio') ext = 'mp3';
 
                 a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}.${ext}`;
                 document.body.appendChild(a);
@@ -132,18 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.remove();
 
                 btn.innerHTML = '✅ Complete';
-                // Stop Animation
                 clearInterval(progressInterval);
 
                 setTimeout(() => {
                     btn.disabled = false;
-                    btn.innerHTML = `<i class="fa-solid fa-download"></i> <span data-i18n="btn_download">Download Again</span>`;
-
-                    // Re-apply translations if needed to ensure correct language
                     const t = translations[currentLang] || translations['en'];
-                    const span = btn.querySelector('[data-i18n]');
-                    if (span) span.textContent = t.btn_download;
-
+                    btn.innerHTML = `<i class="fa-solid fa-download"></i> <span data-i18n="btn_download">${t.btn_download || 'Download Again'}</span>`;
                 }, 3000);
 
             } catch (e) {
@@ -154,30 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 status.className = 'status-msg error';
                 status.classList.remove('hidden');
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-download"></i> <span data-i18n="btn_retry">${t.btn_retry}</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-download"></i> <span data-i18n="btn_retry">${t.btn_retry || 'Retry'}</span>`;
             }
         };
-
-        // --- PROGRESS ANIMATION ---
-        let progressInterval;
-        const btn = document.getElementById('realDownloadBtn');
-        const stages = [
-            '⏳ Connecting...',
-            '⬇️ Downloading from Source...',
-            '🔨 Merging Audio & Video...',
-            '📦 Finalizing File...',
-            '🚀 Sending to You...'
-        ];
-        let stageIndex = 0;
-
-        // Start cycling messages if it takes long
-        progressInterval = setInterval(() => {
-            stageIndex = (stageIndex + 1) % stages.length;
-            // Only update if still disabled (processing)
-            if (btn.disabled) {
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${stages[stageIndex]}`;
-            }
-        }, 4000); // Change every 4 seconds
     }
 }
 
