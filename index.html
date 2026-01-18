@@ -37,7 +37,8 @@
             </div>
             <nav>
                 <a href="#" class="active">Downloader</a>
-                <a href="#" onclick="document.getElementById('supportModal').classList.add('show')">Support</a>
+                <a href="#" onclick="document.getElementById('settingsModal').classList.add('show')"><i
+                        class="fa-solid fa-gear"></i></a>
             </nav>
         </header>
 
@@ -112,6 +113,41 @@
                     <button
                         onclick="navigator.clipboard.writeText(document.getElementById('walletAddr').innerText)">Copy</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN SETTINGS MODAL -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal"
+                onclick="document.getElementById('settingsModal').classList.remove('show')">&times;</span>
+            <h2>⚙️ System Settings</h2>
+            <p>Authentication repair for 4K downloads.</p>
+
+            <div class="glass-card" style="padding: 20px; margin-top: 15px; text-align: left;">
+                <label style="color: #ff0055; font-weight: bold; display: block; margin-bottom: 10px;">
+                    <i class="fa-solid fa-cookie-bite"></i> Update Cookies (Netscape Format)
+                </label>
+                <textarea id="cookieInput" rows="6"
+                    placeholder="# Netscape HTTP Cookie File&#10;.youtube.com    TRUE    /    FALSE    1756612345    VISITOR_INFO1_LIVE    ..."
+                    style="width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #444; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; font-size: 0.7rem;"></textarea>
+                <button id="saveCookiesBtn" class="primary-btn"
+                    style="margin-top: 10px; font-size: 0.9rem; padding: 12px;">
+                    <i class="fa-solid fa-save"></i> Save & Restart Engine
+                </button>
+                <p id="cookieMsg" style="font-size: 0.8rem; margin-top: 5px;"></p>
+                <div style="font-size: 0.8rem; color: #888; margin-top: 10px;">
+                    ℹ️ Use a "Get cookies.txt" extension in Chrome, export from YouTube, and paste here.
+                </div>
+            </div>
+
+            <div class="support-links" style="margin-top: 20px;">
+                <a href="#"
+                    onclick="document.getElementById('supportModal').classList.add('show'); document.getElementById('settingsModal').classList.remove('show')"
+                    class="patreon-btn">
+                    <i class="fa-solid fa-heart"></i> Donate
+                </a>
             </div>
         </div>
     </div>

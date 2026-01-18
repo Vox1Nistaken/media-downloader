@@ -101,6 +101,21 @@ app.post('/api/info', async (req, res) => {
     }
 });
 
+// --- API: UPDATE COOKIES (The "Nuclear" Button) ---
+app.post('/api/admin/cookies', (req, res) => {
+    try {
+        const { cookies } = req.body;
+        if (!cookies) return res.status(400).json({ error: 'No content' });
+
+        fs.writeFileSync(COOKIE_PATH, cookies, 'utf8');
+        console.log('[Auth] Cookies updated manually via Admin Panel');
+        res.json({ success: true, message: 'Cookies updated! V5 Engine is ready.' });
+    } catch (e) {
+        console.error('Cookie Write Error', e);
+        res.status(500).json({ error: 'Failed to save cookies' });
+    }
+});
+
 // --- API: DOWNLOAD (Strict Mode) ---
 app.get('/api/download', async (req, res) => {
     const { url, quality, title } = req.query;
@@ -137,17 +152,14 @@ app.get('/api/download', async (req, res) => {
         '--verbose'
     ];
 
-    // V4.1 FORCE TV CLIENT + OAUTH2
-    // We must explicitly tell yt-dlp to use the "oauth2" account we authenticated with.
-    // Otherwise it acts as a Guest TV and gets blocked.
+    // V4.2 AUTH STRATEGY: COOKIES ONLY
+    // OAuth is deprecated/blocked. We rely purely on cookies.txt being present.
+    // If no cookies are uploaded, we try 'tv' mode as a guest, but it might fail.
     args.push('--extractor-args', 'youtube:player_client=tv');
-    args.push('--username', 'oauth2');
-    args.push('--password', '');
 
     if (hasCookies) {
         args.push('--cookies', COOKIE_PATH);
     }
-    // implicitly uses ~/.cache/yt-dlp for OAuth tokens if no cookies file
 
     // 3. Execute
     try {
