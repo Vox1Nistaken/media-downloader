@@ -61,43 +61,54 @@ app.post('/api/info', async (req, res) => {
 });
 
 // API: Proxy Download (Streams directly to user)
+const { spawn } = require('child_process');
+
 app.get('/api/download', async (req, res) => {
     const { url } = req.query;
     if (!url) return res.status(400).send('URL required');
 
+    console.log('Starting stream download for:', url);
+
     try {
-        console.log('Starting stream download for:', url);
-
-        // Set headers for download
         res.header('Content-Disposition', 'attachment; filename="video.mp4"');
+        res.header('Content-Type', 'video/mp4');
 
-        // Use yt-dlp to stream output
-        // We use the same ytDlp function but with 'exec' to get the process
-        const process = ytDlp.exec(url, {
-            output: '-',
-            format: 'best',
-            noPlaylist: true,
-            noCheckCertificates: true,
-            refer: 'https://www.google.com/',
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        // Use npx to locate the local yt-dlp binary from node_modules
+        // We use 'best[ext=mp4]' to avoid complex merging that might fail over pipe
+        const args = [
+            url,
+            '-o', '-',
+            '-f', 'best[ext=mp4]/best',
+            '--no-playlist',
+            '--no-check-certificates',
+            '--prefer-free-formats',
+            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            '--referer', 'https://www.google.com/'
+        ];
+
+        // spawn is robust for streaming
+        const ytProcess = spawn('npx', ['yt-dlp', ...args]);
+
+        ytProcess.stdout.pipe(res);
+
+        ytProcess.stderr.on('data', (data) => {
+            console.error('yt-dlp stderr:', data.toString());
         });
 
-        // Pipe stdout to response
-        process.stdout.pipe(res);
-
-        process.stderr.on('data', (data) => {
-            // Log stderr but don't break the stream
-            console.error('Stream stderr:', data.toString());
+        ytProcess.on('close', (code) => {
+            if (code !== 0) {
+                console.error(`yt-dlp process exited with code ${code}`);
+                if (!res.headersSent) res.status(500).send('Download Server Error');
+            }
         });
 
         req.on('close', () => {
-            // connection closed, kill process
-            process.kill();
+            ytProcess.kill();
         });
 
     } catch (error) {
-        console.error('Download Error:', error);
-        if (!res.headersSent) res.status(500).send('Download Failed');
+        console.error('Download Setup Error:', error);
+        if (!res.headersSent) res.status(500).send('Server Error');
     }
 });
 
