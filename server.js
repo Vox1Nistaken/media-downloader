@@ -432,7 +432,16 @@ app.get('/api/download', async (req, res) => {
 });
 
 app.get('/api/stats', (req, res) => res.json(stats));
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    console.log('Server Updated: v2.0 (Specialized Libs)');
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running at http://0.0.0.0:${PORT}`);
+    console.log('Server Updated: v2.1 (Docker Fix + Error Handling)');
+});
+
+// Global Error Handlers to prevent crash
+process.on('uncaughtException', (err) => {
+    console.error('CRITICAL ERROR (Uncaught Exception):', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('CRITICAL ERROR (Unhandled Rejection):', reason);
 });
