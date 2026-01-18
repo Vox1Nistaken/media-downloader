@@ -3,7 +3,6 @@ const cors = require('cors');
 const instagramDl = require('instagram-url-direct');
 const { downloadTiktok } = require('@mrnima/tiktok-downloader');
 const { TwitterDL } = require('twitter-downloader');
-const ffmpegPath = require('ffmpeg-static');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -21,19 +20,9 @@ if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir);
 }
 
-// Path to yt-dlp
-const isWin = process.platform === 'win32';
-const ytDlpPath = path.join(__dirname, isWin ? 'yt-dlp.exe' : 'yt-dlp');
-
-// Ensure ffmpeg is executable on Linux
-if (!isWin && fs.existsSync(ffmpegPath)) {
-    try {
-        fs.chmodSync(ffmpegPath, '755');
-        console.log('Set permissions for ffmpeg');
-    } catch (e) {
-        console.error('Error setting ffmpeg permissions:', e);
-    }
-}
+// Path to binaries (Docker system installed)
+const ytDlpPath = 'yt-dlp'; // System command
+const ffmpegPath = 'ffmpeg'; // System command
 
 // Stats
 const stats = {
@@ -55,10 +44,6 @@ function logRequest(url, type, status) {
 // Helper: Run yt-dlp command
 function runYtDlp(args) {
     return new Promise((resolve, reject) => {
-        if (!fs.existsSync(ytDlpPath)) {
-            return reject(new Error('yt-dlp.exe Not Found! Please restart server.'));
-        }
-
         // Force IPv4 to avoid common YouTube blocks on IPv6
         const enhancedArgs = ['--force-ipv4', ...args];
         console.log('Running yt-dlp:', enhancedArgs.join(' '));
@@ -367,7 +352,7 @@ app.get('/api/download', async (req, res) => {
             '--no-warnings',
             '--geo-bypass',
             '--extractor-args', 'youtube:player_client=ios',
-            '--ffmpeg-location', ffmpegPath,
+            // '--ffmpeg-location', ffmpegPath, // Not needed if ffmpeg is in PATH
             '--output', path.join(tempDir, `download-${reqId}.%(ext)s`),
         ];
 
