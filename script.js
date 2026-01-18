@@ -1,238 +1,248 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
     const urlInput = document.getElementById('urlInput');
-    const pasteBtn = document.getElementById('pasteBtn');
     const downloadBtn = document.getElementById('downloadBtn');
-    const formatRadios = document.getElementsByName('format');
-    const qualityGroup = document.getElementById('qualityGroup');
     const resultArea = document.getElementById('resultArea');
-
-    // Platform Logic
+    const pasteBtn = document.getElementById('pasteBtn');
+    const historySection = document.getElementById('historySection');
+    const historyGrid = document.getElementById('historyGrid');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
     const platformBtns = document.querySelectorAll('.platform-btn');
-    const heroTitle = document.querySelector('.hero h1');
-    let currentPlatform = 'youtube';
 
-    const platformConfig = {
-        youtube: {
-            title: 'YouTube <span class="gradient-text">Downloader</span>',
-            placeholder: 'Paste YouTube video link here...',
-            color: '#ff0000'
-        },
-        tiktok: {
-            title: 'TikTok <span class="gradient-text">No Watermark</span>',
-            placeholder: 'Paste TikTok video link here...',
-            color: '#00f2ea'
-        },
-        instagram: {
-            title: 'Instagram <span class="gradient-text">Reels & Video</span>',
-            placeholder: 'Paste Instagram link here...',
-            color: '#bc2a8d'
-        },
-        facebook: {
-            title: 'Facebook <span class="gradient-text">Video HD</span>',
-            placeholder: 'Paste Facebook video link here...',
-            color: '#1877f2'
-        },
-        twitter: {
-            title: 'X (Twitter) <span class="gradient-text">Video</span>',
-            placeholder: 'Paste X / Twitter link here...',
-            color: '#000000'
-        }
-    };
+    // State
+    const API_URL = '/api/info'; // VPS Backend
 
-    platformBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            platformBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+    // Init
+    loadHistory();
 
-            currentPlatform = btn.dataset.platform;
-            const config = platformConfig[currentPlatform];
-
-            heroTitle.innerHTML = config.title;
-            urlInput.placeholder = config.placeholder;
-        });
-    });
-
-    // Paste
+    // Event Listeners
+    downloadBtn.addEventListener('click', handleDownload);
     pasteBtn.addEventListener('click', async () => {
         try {
             const text = await navigator.clipboard.readText();
             urlInput.value = text;
         } catch (err) {
-            console.error('Failed to read clipboard contents: ', err);
-            alert('Please allow clipboard access or paste manually.');
+            alert('Failed to read clipboard');
         }
     });
 
-    // Toggle Quality
-    formatRadios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            if (e.target.value === 'audio') {
-                qualityGroup.style.opacity = '0.5';
-                qualityGroup.style.pointerEvents = 'none';
-            } else {
-                qualityGroup.style.opacity = '1';
-                qualityGroup.style.pointerEvents = 'all';
-            }
-        });
+    clearHistoryBtn.addEventListener('click', () => {
+        localStorage.removeItem('dlHistory');
+        loadHistory();
     });
 
-    // List of Cobalt instances to try (Client-Side)
-    const cobaltInstances = [
-        { url: 'https://api.cobalt.tools', endpoint: '/' }, // Official (strict)
-        { url: 'https://cobalt.154.53.56.156.nip.io', endpoint: '/api/json' },
-        { url: 'https://cobalt.dani.guru', endpoint: '/api/json' },
-        { url: 'https://cobalt.nao.2020.day', endpoint: '/api/json' },
-        { url: 'https://dl.khub.win', endpoint: '/api/json' },
-        { url: 'https://cobalt.q13.sbs', endpoint: '/api/json' },
-        { url: 'https://c.haber.lol', endpoint: '/api/json' },
-        { url: 'https://cobalt.kwiatekmiki.pl', endpoint: '/api/json' },
-        { url: 'https://api.cobalt.best', endpoint: '/' },
-        { url: 'https://co.wuk.sh', endpoint: '/api/json' },
-        { url: 'https://cobalt.publications.wiki', endpoint: '/api/json' },
-        { url: 'https://cobalt-api.kwiatekmiki.pl', endpoint: '/api/json' }
-    ];
+    // Detect Platform
+    urlInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        platformBtns.forEach(btn => btn.classList.remove('active'));
 
-    // Download Button
-    downloadBtn.addEventListener('click', async () => {
+        if (val.includes('youtube') || val.includes('youtu.be')) activatePlatform('youtube');
+        else if (val.includes('tiktok')) activatePlatform('tiktok');
+        else if (val.includes('instagram')) activatePlatform('instagram');
+        else if (val.includes('facebook') || val.includes('fb.watch')) activatePlatform('facebook');
+        else if (val.includes('twitter') || val.includes('x.com')) activatePlatform('twitter');
+    });
+
+    function activatePlatform(name) {
+        document.querySelector(`.platform-btn[data-platform="${name}"]`)?.classList.add('active');
+    }
+
+    // --- Main Logic ---
+
+    async function handleDownload() {
         const url = urlInput.value.trim();
         if (!url) {
             alert('Please enter a valid URL');
             return;
         }
 
-        startLoading();
+        // Set Loading State with Animation
+        setLoading(true);
+        resultArea.innerHTML = '';
+        resultArea.classList.add('hidden');
 
         try {
-            const response = await fetch('/api/info', {
+            const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url })
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.error || errorData.details || 'API Request Failed';
-                throw new Error(errorMessage);
+                const err = await response.json();
+                throw new Error(err.error || 'Failed to fetch video info');
             }
 
             const data = await response.json();
-            showResult(data);
+            renderResult(data);
+            addToHistory(data);
 
         } catch (error) {
-            console.error('Fetch Error Details:', error);
-            alert('Error: ' + error.message);
+            console.error(error);
+            resultArea.innerHTML = `<div style="color:red; text-align:center; margin-top:1rem;">
+                <i class="fa-solid fa-circle-exclamation"></i> ${error.message}
+            </div>`;
+            resultArea.classList.remove('hidden');
         } finally {
-            stopLoading();
+            setLoading(false);
         }
-    });
-
-    function startLoading() {
-        downloadBtn.classList.add('processing');
-        downloadBtn.disabled = true;
-        resultArea.classList.add('hidden');
-        resultArea.innerHTML = '';
-
-        const processingMsg = document.createElement('div');
-        processingMsg.id = 'processingMsg';
-        processingMsg.style.textAlign = 'center';
-        processingMsg.style.marginTop = '1rem';
-        processingMsg.style.color = '#e2e8f0';
-        processingMsg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching best server...';
-        document.querySelector('.downloader-card').appendChild(processingMsg);
     }
 
-    function stopLoading() {
-        downloadBtn.classList.remove('processing');
-        downloadBtn.disabled = false;
-        const msg = document.getElementById('processingMsg');
-        if (msg) msg.remove();
+    // --- Modern Loading Animation ---
+    function setLoading(isLoading) {
+        const btnText = downloadBtn.querySelector('.btn-text');
+        const loader = downloadBtn.querySelector('.loader');
+
+        if (isLoading) {
+            downloadBtn.classList.add('processing');
+            downloadBtn.disabled = true;
+            // Simple text update for "Animation" effect
+            let steps = ['Analyzing...', 'Fetching Media...', 'Generating Link...'];
+            let i = 0;
+            btnText.textContent = steps[0];
+
+            // This interval is just visual, the real await happens in handleDownload
+            downloadBtn.dataset.interval = setInterval(() => {
+                i = (i + 1) % steps.length;
+                // We don't update text here because CSS hides it .processing
+                // But if we wanted text next to loader we could.
+            }, 800);
+
+        } else {
+            downloadBtn.classList.remove('processing');
+            downloadBtn.disabled = false;
+            clearInterval(downloadBtn.dataset.interval);
+            btnText.textContent = 'Analyze & Download';
+        }
     }
 
-    function showResult(data) {
+    // --- G2A Style Result Rendering ---
+    function renderResult(data) {
         resultArea.classList.remove('hidden');
 
-        // Prepare safe title
-        const safeTitle = (data.title || 'video').replace(/[^a-zA-Z0-9 \-_]/g, "").substring(0, 50);
-        const encodedUrl = encodeURIComponent(urlInput.value);
+        // Filter formats: Prefer mp4, separate Audio
+        const videoFormats = data.formats.filter(f => f.hasVideo);
+        const bestVideo = videoFormats[0] || {};
 
-        // Generate Buttons HTML
-        let buttonsHtml = '';
+        let formatsHTML = '';
 
-        if (data.formats && data.formats.length > 0) {
-            buttonsHtml = data.formats.map(f => {
-                // If url is valid http link, use it. Else construct backend link.
-                let link = f.url;
-                // Type check to avoid .startsWith error
-                if (!link || typeof link !== 'string' || !link.startsWith('http')) {
-                    // If backend returned 'WILL_RESOLVE_ON_DOWNLOAD' or invalid link, use proxy endpoint
-                    link = `/api/download?url=${encodedUrl}&quality=${f.itag || f.quality}&title=${encodeURIComponent(safeTitle)}`;
-                }
-
-                return `
-                    <a href="${link}" target="_blank" class="primary-btn" style="display: inline-block; width: auto; padding: 0.8rem 1.5rem; text-decoration: none; font-size: 0.9rem; margin: 5px;">
-                        <i class="fa-solid fa-download"></i> Download ${f.quality}
-                    </a>
-                `;
-            }).join('');
-        } else {
-            buttonsHtml = '<p>No download formats found.</p>';
+        // Add a few key buttons
+        // 1. Highest Quality Video
+        if (data.downloadUrl) {
+            formatsHTML += `<a href="${data.downloadUrl}" target="_blank" class="dl-btn">
+                <i class="fa-solid fa-video"></i> Download Video (Best)
+           </a>`;
+        } else if (videoFormats.length > 0) {
+            formatsHTML += `<a href="${videoFormats[0].url}" target="_blank" class="dl-btn">
+                <i class="fa-solid fa-video"></i> Download Video
+           </a>`;
         }
 
-        resultArea.innerHTML = `
-            <div style="text-align: center; margin-top: 2rem; color: #fff;">
-                <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">${data.title}</h3>
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 1rem;">
-                    <i class="fa-solid fa-circle-check" style="font-size: 3rem; color: #4ade80; margin-bottom: 10px;"></i>
-                    <p>Ready to Download</p>
-                </div>
-                
-                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    ${buttonsHtml}
+        // 2. Audio Option
+        const audioFormat = data.formats.find(f => !f.hasVideo && f.hasAudio) || data.formats.find(f => f.hasAudio);
+        if (audioFormat) {
+            formatsHTML += `<a href="${audioFormat.url}" target="_blank" class="dl-btn audio-btn">
+                <i class="fa-solid fa-music"></i> Download Audio
+           </a>`;
+        }
+
+        const html = `
+            <div class="result-card">
+                <img src="${data.thumbnail}" alt="${data.title}" class="result-thumbnail">
+                <div class="result-info">
+                    <div>
+                        <h3 class="result-title">${data.title}</h3>
+                        <div class="result-meta">
+                            <span class="quality-badge">${data.platform}</span>
+                            <span><i class="fa-regular fa-clock"></i> ${formatDuration(data.duration)}</span>
+                        </div>
+                    </div>
+                    <div class="download-options">
+                        ${formatsHTML}
+                    </div>
                 </div>
             </div>
         `;
+
+        resultArea.innerHTML = html;
+
+        // Scroll to result
+        resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // Support Modal Logic
+    function formatDuration(seconds) {
+        if (!seconds) return '00:00';
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // --- History Feature ---
+    function addToHistory(data) {
+        let history = JSON.parse(localStorage.getItem('dlHistory') || '[]');
+
+        // Avoid duplicates (by title)
+        history = history.filter(item => item.title !== data.title);
+
+        // Add new to top
+        history.unshift({
+            title: data.title,
+            thumbnail: data.thumbnail,
+            platform: data.platform,
+            date: new Date().toLocaleDateString()
+        });
+
+        // Keep max 5
+        if (history.length > 5) history.pop();
+
+        localStorage.setItem('dlHistory', JSON.stringify(history));
+        loadHistory();
+    }
+
+    function loadHistory() {
+        const history = JSON.parse(localStorage.getItem('dlHistory') || '[]');
+
+        if (history.length === 0) {
+            historySection.classList.add('hidden');
+            return;
+        }
+
+        historySection.classList.remove('hidden');
+        historyGrid.innerHTML = history.map(item => `
+            <div class="history-card">
+                <img src="${item.thumbnail}" alt="thumb" class="history-thumb">
+                <div class="history-info">
+                    <div class="history-title" title="${item.title}">${item.title}</div>
+                    <div class="history-date">${item.date} • ${item.platform}</div>
+                </div>
+                <div class="history-actions">
+                    <button class="icon-btn" onclick="document.getElementById('urlInput').value = '${item.title}'; document.getElementById('urlInput').focus();" title="Search Again"><i class="fa-solid fa-rotate-left"></i></button>
+                    <!-- <button class="icon-btn"><i class="fa-solid fa-download"></i></button> --> 
+                    <!-- Note: Cannot save Direct Links for long term as they expire. Best to just re-search -->
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Modal Handling (Support)
     const modal = document.getElementById('supportModal');
-    const openBtn = document.querySelector('.support-btn');
-    const closeBtn = document.querySelector('.close-modal');
-    const copyBtcBtn = document.getElementById('copyBtcBtn');
-    const btcInput = document.getElementById('btcAddress');
+    const btn = document.querySelector('.support-btn');
+    const close = document.querySelector('.close-modal');
 
-    if (openBtn && modal) {
-        openBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            modal.classList.add('show');
-            modal.classList.remove('hidden');
-        });
+    if (btn) btn.onclick = () => modal.classList.add('show');
+    if (close) close.onclick = () => modal.classList.remove('show');
+    window.onclick = (e) => {
+        if (e.target == modal) modal.classList.remove('show');
+    }
 
-        closeBtn.addEventListener('click', () => {
-            modal.classList.remove('show');
-            setTimeout(() => modal.classList.add('hidden'), 300); // Wait for transition
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('show');
-                setTimeout(() => modal.classList.add('hidden'), 300);
-            }
-        });
-
-        // Copy Feature
-        if (copyBtcBtn && btcInput) {
-            copyBtcBtn.addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(btcInput.value);
-                    const originalIcon = copyBtcBtn.innerHTML;
-                    copyBtcBtn.innerHTML = '<i class="fa-solid fa-check" style="color: #4ade80;"></i>';
-                    setTimeout(() => {
-                        copyBtcBtn.innerHTML = originalIcon;
-                    }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy', err);
-                }
-            });
+    // Copy Crypto Address
+    const copyBtn = document.getElementById('copyBtcBtn');
+    if (copyBtn) {
+        copyBtn.onclick = () => {
+            const copyText = document.getElementById("btcAddress");
+            copyText.select();
+            navigator.clipboard.writeText(copyText.value);
+            alert("Address copied: " + copyText.value);
         }
     }
 });
