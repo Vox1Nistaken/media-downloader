@@ -85,6 +85,11 @@ app.post('/api/info', async (req, res) => {
             } else {
                 args.extractorArgs = 'youtube:player_client=android'; // For info fetching, Android is still okay usually
             }
+        } else {
+            // V6.2: INSTAGRAM/TIKTOK FIX
+            // These sites aggressively block 'yt-dlp' User-Agent. We MUST spoof a real browser.
+            args.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+            args.referer = 'https://www.google.com/';
         }
 
         const output = await ytDlp(url, args);
@@ -189,6 +194,10 @@ app.get('/api/download', async (req, res) => {
             // Other Platforms (TikTok, IG, Twitter, FB)
             // Usually don't need cookies or specific clients, but if 'cookies.txt' contains them, passing it is fine.
             if (hasCookies) args.push('--cookies', COOKIE_PATH);
+
+            // V6.2: BROWSER SPOOFING FOR DOWNLOADS too
+            args.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            args.push('--referer', 'https://www.google.com/');
         }
     }
 
