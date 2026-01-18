@@ -517,17 +517,24 @@ header nav a:hover {
 .lang-option {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
-    padding: 15px;
+    padding: 10px;
     border-radius: 12px;
     cursor: pointer;
     transition: 0.3s;
-    text-align: center;
-    font-size: 3rem;
-    /* Large Flags */
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 80px;
+    height: 70px;
+    overflow: hidden;
+    /* crop flags if needed */
+}
+
+.lang-option img {
+    width: 48px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .lang-option:hover {
