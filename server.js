@@ -250,7 +250,7 @@ app.get('/api/download', async (req, res) => {
 
     } catch (e) {
         console.error('Download Endpoint Error:', e);
-        res.status(500).send('Internal Server Error');
+        res.status(500).send(`Internal Server Error: ${e.message}`);
     }
 });
 
