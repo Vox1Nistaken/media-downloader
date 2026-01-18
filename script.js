@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startLoading();
 
         try {
-            const response = await fetch('http://localhost:3000/api/info', {
+            const response = await fetch('/api/info', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url })
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Generic logic for ALL platforms
         if (data.formats && data.formats.length > 0) {
             const format = data.formats[0];
-            downloadLink = `http://localhost:3000/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${format.itag}&type=${type}&title=${encodeURIComponent(safeTitle)}`;
+            downloadLink = `/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${format.itag}&type=${type}&title=${encodeURIComponent(safeTitle)}`;
 
             // Dynamic Update
             setTimeout(() => {
@@ -165,14 +165,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    downloadLink = `http://localhost:3000/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${data.formats[0].itag}&type=${type}&title=${encodeURIComponent(safeTitle)}`;
+                    downloadLink = `/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${data.formats[0].itag}&type=${type}&title=${encodeURIComponent(safeTitle)}`;
                     document.querySelector('#resultArea a.primary-btn').href = downloadLink;
                 }
 
                 qualitySelect.onchange = () => {
                     const selectedItag = qualitySelect.value;
                     const currentType = document.querySelector('input[name="format"]:checked').value;
-                    const updatedLink = `http://localhost:3000/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${selectedItag}&type=${currentType}&title=${encodeURIComponent(safeTitle)}`;
+                    const updatedLink = `/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${selectedItag}&type=${currentType}&title=${encodeURIComponent(safeTitle)}`;
                     document.querySelector('#resultArea a.primary-btn').href = updatedLink;
                 };
             }, 100);
