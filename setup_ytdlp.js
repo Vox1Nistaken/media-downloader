@@ -6,7 +6,7 @@ const platform = process.platform;
 const isWin = platform === 'win32';
 
 const fileName = isWin ? 'yt-dlp.exe' : 'yt-dlp';
-const url = `https://github.com/yt-dlp/yt-dlp/releases/latest/download/${fileName}`;
+const url = `https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/${fileName}`;
 const dest = path.join(__dirname, fileName);
 
 async function downloadFile() {
