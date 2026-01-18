@@ -113,12 +113,15 @@ app.get('/api/download', async (req, res) => {
 
     console.log(`[V4 Download] ${url} [${quality}] (Auth: ${hasCookies})`);
 
-    // 1. Format Selection (Strict)
-    let formatArg = 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b'; // Fallback chain
+    // 1. Format Selection (Relaxed Strict)
+    // We use <= to catch "Best available up to X". 
+    // e.g. If 1080p is missing but 720p exists, 1080p request will get 720p instead of crashing.
+    let formatArg = 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b';
 
-    if (quality === '1080p') formatArg = 'bv*[height=1080]+ba';
-    else if (quality === '720p') formatArg = 'bv*[height=720]+ba';
-    else if (quality === '480p') formatArg = 'bv*[height=480]+ba';
+    // Use <= to be safe. "Strict" meant "Don't fall back to 144p", not "Fail if pixel exact match missing"
+    if (quality === '1080p') formatArg = 'bv*[height<=1080]+ba/b';
+    else if (quality === '720p') formatArg = 'bv*[height<=720]+ba/b';
+    else if (quality === '480p') formatArg = 'bv*[height<=480]+ba/b';
     else if (quality === 'audio') formatArg = 'ba';
 
     // 2. Build Args
@@ -134,13 +137,15 @@ app.get('/api/download', async (req, res) => {
         '--verbose'
     ];
 
+    // V4.1 FORCE TV CLIENT
+    // The previous 'ios' fallback caused "Only images available".
+    // We now rely 100% on the TV client + OAuth2 cache.
+    args.push('--extractor-args', 'youtube:player_client=tv');
+
     if (hasCookies) {
         args.push('--cookies', COOKIE_PATH);
-        args.push('--extractor-args', 'youtube:player_client=tv');
-    } else {
-        // Fallback to iOS if no auth (risk of 403, but better than nothing)
-        args.push('--extractor-args', 'youtube:player_client=ios');
     }
+    // implicitly uses ~/.cache/yt-dlp for OAuth tokens if no cookies file
 
     // 3. Execute
     try {
