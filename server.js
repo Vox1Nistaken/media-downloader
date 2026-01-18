@@ -210,47 +210,60 @@ app.get('/api/download', async (req, res) => {
 
     // 3. Execute
     try {
-        console.log(`[V4 Exec] yt-dlp ${args.join(' ')}`); // Log command for debug
-        const process = spawn('yt-dlp', args);
+        // Resolve yt-dlp binary path manually to avoid PATH issues
+        const ytDlpBinary = path.join(__dirname, 'node_modules', 'yt-dlp-exec', 'bin', 'yt-dlp');
+
+        // Fallback for Windows local dev vs Linux VPS
+        const binary = fs.existsSync(ytDlpBinary) ? ytDlpBinary : 'yt-dlp';
+
+        console.log(`[V4 Exec] ${binary} ${args.join(' ')}`);
+
+        const process = spawn(binary, args);
         let errorLog = '';
 
         process.stderr.on('data', d => errorLog += d.toString());
+
+        // CRITICAL: Catch spawn errors (like ENOENT / Command not found)
+        process.on('error', (spawnErr) => {
+            console.error('[Spawn Error]', spawnErr);
+            if (!res.headersSent) {
+                res.status(500).json({ error: `Spawn Failed: ${spawnErr.message}` });
+            }
+        });
 
         process.on('close', code => {
             if (code === 0) {
                 console.log(`[Download Complete] ${tempPath}`);
                 if (!fs.existsSync(tempPath)) {
-                    return res.status(500).json({ error: 'File missing after successful download process' });
+                    if (!res.headersSent) res.status(500).json({ error: 'File missing after successful download process' });
+                    return;
                 }
                 res.download(tempPath, `${safeTitle}.mp4`, err => {
                     if (err) console.error('Send Error:', err);
-                    // Cleanup temp file after download is sent or fails to send
+                    // Cleanup temp file
                     setTimeout(() => {
                         if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-                    }, 60000); // Keep for 1 min just in case
+                    }, 60000);
                 });
             } else {
                 console.error(`[Download Error] Exited with ${code}`);
                 console.error('STDERR:', errorLog);
 
-                // Clean up empty/partial file
                 if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
-                // ANALYZE ERROR - Graceful Degradation
                 const err = errorLog.toLowerCase();
-
-                if (err.includes('sign in') || err.includes('login required') || err.includes('content is not available')) {
-                    console.warn(`[Restricted] Video requires auth: ${url}`);
-                    return res.status(403).json({ error: 'RESTRICTED_CONTENT' });
+                if (err.includes('sign in') || err.includes('login required')) {
+                    if (!res.headersSent) res.status(403).json({ error: 'RESTRICTED_CONTENT' });
+                    return;
                 }
 
-                res.status(500).send('Internal Server Error');
+                if (!res.headersSent) res.status(500).json({ error: errorLog || `Process exited with code ${code}` });
             }
         });
 
     } catch (e) {
         console.error('Download Endpoint Error:', e);
-        res.status(500).send(`Internal Server Error: ${e.message}`);
+        if (!res.headersSent) res.status(500).send(`Internal Server Error: ${e.message}`);
     }
 });
 
