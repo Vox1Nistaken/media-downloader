@@ -44,13 +44,19 @@ function logRequest(url, type, status) {
 // Helper: Run yt-dlp command
 function runYtDlp(args) {
     return new Promise((resolve, reject) => {
-        // Force IPv4 to avoid common YouTube blocks on IPv6
-        const enhancedArgs = ['--force-ipv4', ...args];
+        // Force IPv4 and non-interactive mode
+        const enhancedArgs = ['--force-ipv4', '--no-interactive', ...args];
         console.log('Running yt-dlp:', enhancedArgs.join(' '));
 
         const process = spawn(ytDlpPath, enhancedArgs);
         let stdout = '';
         let stderr = '';
+
+        // Timeout Logic (30 seconds)
+        const timeout = setTimeout(() => {
+            process.kill();
+            reject(new Error('yt-dlp Timed Out (30s)'));
+        }, 30000); // 30 seconds
 
         process.stdout.on('data', (data) => {
             stdout += data.toString();
@@ -61,6 +67,7 @@ function runYtDlp(args) {
         });
 
         process.on('close', (code) => {
+            clearTimeout(timeout);
             if (code !== 0) {
                 console.error(`yt-dlp Error (Code ${code}):`, stderr);
                 // Only resolve if we really have a JSON-like stdout despite error (warnings)
