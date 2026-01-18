@@ -262,8 +262,7 @@ app.post('/api/info', async (req, res) => {
             '--extractor-args', 'youtube:player_client=ios',
         ];
 
-        // Cookies Disabled for now (causing IP mismatch issues)
-        /*
+        // Cookies Support
         const localCookies = path.join(__dirname, 'cookies.txt');
         const renderCookies = '/etc/secrets/cookies.txt';
 
@@ -273,10 +272,10 @@ app.post('/api/info', async (req, res) => {
         } else if (fs.existsSync(renderCookies)) {
             console.log('✅ Found Render secret cookies.txt');
             args.push('--cookies', renderCookies);
-        } else {
-            console.warn('❌ NO COOKIES FOUND! Request might fail.');
         }
-        */
+
+        // Add User-Agent
+        args.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
         args.push(url);
 
@@ -372,8 +371,7 @@ app.get('/api/download', async (req, res) => {
             '--output', path.join(tempDir, `download-${reqId}.%(ext)s`),
         ];
 
-        // Cookies Disabled
-        /*
+        // Cookies Support
         const localCookies = path.join(__dirname, 'cookies.txt');
         const renderCookies = '/etc/secrets/cookies.txt';
         if (fs.existsSync(localCookies)) {
@@ -381,7 +379,9 @@ app.get('/api/download', async (req, res) => {
         } else if (fs.existsSync(renderCookies)) {
             args.push('--cookies', renderCookies);
         }
-        */
+
+        // Add User-Agent
+        args.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
         args.push(url);
 
