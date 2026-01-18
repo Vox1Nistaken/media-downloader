@@ -8,6 +8,7 @@
         "dev": "nodemon server.js"
     },
     "dependencies": {
+        "@distube/ytdl-core": "^4.16.12",
         "@mrnima/tiktok-downloader": "^1.0.0",
         "axios": "^1.13.2",
         "cors": "^2.8.5",
