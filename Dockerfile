@@ -1,4 +1,4 @@
-FROM node:18-bullseye
+FROM node:20-bullseye
 
 # Install Python3, pip, and ffmpeg
 RUN apt-get update && \
