@@ -97,7 +97,7 @@ app.get('/api/download', async (req, res) => {
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
-        '--extractor-args', 'youtube:player_client=ios',
+        '--extractor-args', 'youtube:player_client=tv', // Switch to TV client (often less restricted on resolution)
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
         '--verbose'
