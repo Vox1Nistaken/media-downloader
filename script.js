@@ -151,33 +151,44 @@ document.addEventListener('DOMContentLoaded', () => {
     function showResult(data) {
         resultArea.classList.remove('hidden');
 
-        // Simple single result for now (since we bypassed backend detailed parsing)
-        const format = data.formats[0];
-        const downloadLink = format.url;
+        // Prepare safe title
+        const safeTitle = (data.title || 'video').replace(/[^a-zA-Z0-9 \-_]/g, "").substring(0, 50);
+        const encodedUrl = encodeURIComponent(urlInput.value);
 
-        // Since we don't have detailed metadata from Cobalt easily without backend scraping,
-        // We show a generic "Download Ready" card.
+        // Generate Buttons HTML
+        let buttonsHtml = '';
+
+        if (data.formats && data.formats.length > 0) {
+            buttonsHtml = data.formats.map(f => {
+                // If url is valid http link, use it. Else construct backend link.
+                let link = f.url;
+                if (!link || !link.startsWith('http')) {
+                    link = `/api/download?url=${encodedUrl}&quality=${f.itag || f.quality}&title=${encodeURIComponent(safeTitle)}`;
+                }
+
+                return `
+                    <a href="${link}" target="_blank" class="primary-btn" style="display: inline-block; width: auto; padding: 0.8rem 1.5rem; text-decoration: none; font-size: 0.9rem; margin: 5px;">
+                        <i class="fa-solid fa-download"></i> Download ${f.quality}
+                    </a>
+                `;
+            }).join('');
+        } else {
+            buttonsHtml = '<p>No download formats found.</p>';
+        }
 
         resultArea.innerHTML = `
             <div style="text-align: center; margin-top: 2rem; color: #fff;">
                 <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">${data.title}</h3>
                 <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 1rem;">
                     <i class="fa-solid fa-circle-check" style="font-size: 3rem; color: #4ade80; margin-bottom: 10px;"></i>
-                    <p>Media found successfully via public cloud.</p>
+                    <p>Ready to Download</p>
                 </div>
                 
                 <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    ${data.formats.map(f => `
-                        <a href="${f.url}" target="_blank" class="primary-btn" style="display: inline-block; width: auto; padding: 0.8rem 1.5rem; text-decoration: none; font-size: 0.9rem;">
-                            <i class="fa-solid fa-download"></i> Download ${f.quality}
-                        </a>
-                    `).join('')}
+                    ${buttonsHtml}
                 </div>
             </div>
         `;
-
-        // Hide standard quality selector as we render buttons dynamically now
-        // Or keep it if we map it back. Buttons are easier for this direct mode.
     }
 
     // Support Modal Logic
