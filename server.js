@@ -159,7 +159,6 @@ app.get('/api/download', async (req, res) => {
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
         '--verbose',
-        '--no-input', // Prevent hanging on prompts
         // V6.5 PERFORMANCE TUNING
         '-N', '4', // Reduced from 8 to 4 for better stability
         '--buffer-size', '16M'
