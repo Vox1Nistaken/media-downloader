@@ -7,41 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusBar = document.getElementById('statusBar');
     const qualitySelect = document.getElementById('qualitySelect');
 
-    // --- 1. HEALTH CHECK ---
-    checkSystemHealth();
-    async function checkSystemHealth() {
-        try {
-            statusBar.classList.remove('hidden');
-            const res = await fetch('/api/health');
-            const data = await res.json();
-
-            // FFmpeg Status
-            const engineSpan = document.getElementById('engineStatus');
-            if (data.ffmpeg === 'ready') {
-                engineSpan.textContent = 'Ready (V3.1)';
-                engineSpan.className = 'ok';
-            } else {
-                engineSpan.textContent = 'Missing!';
-                engineSpan.className = 'err';
-                showError('CRITICAL: Backend engine missing. Contact Admin.');
-            }
-
-            // Auth Status
-            const authSpan = document.getElementById('authStatus');
-            if (data.auth === 'active') {
-                authSpan.textContent = 'Active (4K Ready)';
-                authSpan.className = 'ok';
-            } else {
-                authSpan.textContent = 'Guest (Limited)';
-                authSpan.className = '';
-            }
-
-        } catch (e) {
-            console.error('Health check failed', e);
-            document.getElementById('engineStatus').textContent = 'Offline';
-            document.getElementById('engineStatus').className = 'err';
-        }
-    }
+    // --- 1. HEALTH CHECK REMOVED ---
+    // User requested to hide the "Engine/Auth" bar.
+    // Logic is kept simple.
 
     // --- 2. PASTE ---
     const pasteBtn = document.getElementById('pasteBtn');

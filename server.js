@@ -69,11 +69,15 @@ app.post('/api/info', async (req, res) => {
 
         // Use TV client if authenticated, else Android (to avoid login wall for public data)
         const hasCookies = fs.existsSync(COOKIE_PATH);
-        if (hasCookies) {
-            args.cookies = COOKIE_PATH;
-            args.extractorArgs = 'youtube:player_client=tv';
-        } else {
-            args.extractorArgs = 'youtube:player_client=android';
+        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+
+        if (isYoutube) {
+            if (hasCookies) {
+                args.cookies = COOKIE_PATH;
+                args.extractorArgs = 'youtube:player_client=tv';
+            } else {
+                args.extractorArgs = 'youtube:player_client=android'; // For info fetching, Android is still okay usually
+            }
         }
 
         const output = await ytDlp(url, args);
@@ -162,18 +166,23 @@ app.get('/api/download', async (req, res) => {
         args.push('-S', `${resLimit},vcodec:h264,acodec:m4a`);
 
         // Also strictly cap height to avoid mistakes if sorting fails
-        // args.push('-f', `bv*[height<=${quality === 'highest' ? 1440 : (parseInt(quality)||1080)}]+ba/b[ext=mp4]/b`);
-    }
+        // CLIENT STRATEGY: DYNAMIC
+        // We only apply YouTube-specific 'player_client' args if the URL is actually YouTube.
+        // For TikTok, IG, FB, etc., we let yt-dlp use its default extractors.
+        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
 
-    // CLIENT STRATEGY: DEFAULT (WEB)
-    // We removed 'android' forcing because it was causing 144p caps on DC IPs.
-    // We only use 'tv' if auth is present.
-    if (hasCookies) {
-        args.push('--cookies', COOKIE_PATH);
-        args.push('--extractor-args', 'youtube:player_client=tv'); // Use TV if we have power (Cookies)
-    } else {
-        // GUESTS: Use default Web client. It's less restricted on resolution than Android-Guest.
-        // No extra args needed.
+        if (isYoutube) {
+            if (hasCookies) {
+                args.push('--cookies', COOKIE_PATH);
+                args.push('--extractor-args', 'youtube:player_client=tv');
+            } else {
+                // Guest YT: Default Web client is safest now.
+            }
+        } else {
+            // Other Platforms (TikTok, IG, Twitter, FB)
+            // Usually don't need cookies or specific clients, but if 'cookies.txt' contains them, passing it is fine.
+            if (hasCookies) args.push('--cookies', COOKIE_PATH);
+        }
     }
 
     // Resilience Flags

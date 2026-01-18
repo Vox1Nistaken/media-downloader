@@ -17,16 +17,6 @@
     <div class="bg-glow"></div>
     <div class="bg-grid"></div>
 
-    <!-- Status Bar (The "Engine Light") -->
-    <div id="statusBar" class="status-bar hidden">
-        <div class="status-item">
-            <i class="fa-solid fa-server"></i> Engine: <span id="engineStatus">Checking...</span>
-        </div>
-        <div class="status-item">
-            <i class="fa-solid fa-key"></i> Auth: <span id="authStatus">Checking...</span>
-        </div>
-    </div>
-
     <!-- Main Container -->
     <div class="app-container">
 
@@ -46,13 +36,21 @@
         <main>
             <div class="glass-card main-card">
                 <h1 class="hero-title">Download <span class="gradient-text">Anything.</span></h1>
-                <p class="hero-subtitle">4K Video • High Quality Audio • One Click</p>
+                <p class="hero-subtitle">Premium Video Downloader</p>
+
+                <!-- Platform Icons -->
+                <div class="platform-icons">
+                    <i class="fa-brands fa-youtube" title="YouTube"></i>
+                    <i class="fa-brands fa-instagram" title="Instagram"></i>
+                    <i class="fa-brands fa-tiktok" title="TikTok"></i>
+                    <i class="fa-brands fa-square-facebook" title="Facebook"></i>
+                    <i class="fa-brands fa-x-twitter" title="X (Twitter)"></i>
+                </div>
 
                 <!-- Input Area -->
                 <div class="input-wrapper">
                     <i class="fa-solid fa-link input-icon"></i>
-                    <input type="text" id="urlInput" placeholder="Paste YouTube, TikTok, or Instagram link..."
-                        autocomplete="off">
+                    <input type="text" id="urlInput" placeholder="Paste link from any site..." autocomplete="off">
                     <button id="pasteBtn" class="icon-btn"><i class="fa-regular fa-paste"></i></button>
                 </div>
 
