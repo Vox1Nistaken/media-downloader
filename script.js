@@ -109,8 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showResult(data);
 
         } catch (error) {
-            console.error(error);
-            alert(`Error: ${error.message}`);
+            console.error('Fetch Error Details:', error);
+            alert('Error: ' + error.message);
         } finally {
             stopLoading();
         }
