@@ -22,6 +22,28 @@ if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir);
 }
 
+// Helper: Parse Netscape Cookies
+function parseNetscapeCookies(content) {
+    const cookies = [];
+    const lines = content.split('\n');
+    for (const line of lines) {
+        if (!line || line.startsWith('#')) continue;
+        const parts = line.split('\t');
+        if (parts.length >= 7) {
+            cookies.push({
+                domain: parts[0],
+                flag: parts[1] === 'TRUE',
+                path: parts[2],
+                secure: parts[3] === 'TRUE',
+                expirationDate: parseInt(parts[4]),
+                name: parts[5],
+                value: parts[6].trim()
+            });
+        }
+    }
+    return cookies;
+}
+
 // ---------------------------------------------------------
 // COOKIES & AGENT SETUP
 // ---------------------------------------------------------
@@ -36,20 +58,22 @@ try {
 
     if (cookiePath) {
         console.log('🍪 Loading cookies from:', cookiePath);
-        const cookies = JSON.parse(fs.readFileSync(cookiePath, 'utf8')); // Expecting JSON format for ytdl-core agent usually, but wait.
-        // ytdl.createAgent accepts cookies array. Netscape format needs parsing.
-        // If cookies.txt is Netscape format (standard), we need to parse or use a library.
-        // For simplicity, let's assume ytdl-core might handle it or we use the basic agent.
-        // Actually @distube/ytdl-core handles cookies differently.
-        // We will construct calls with `agent` options if possible.
-        // Let's rely on standard generic agent first, or user provided cookies if they are JSON.
-        // If text, we might skip complex parsing for now to avoid errors, relying on Cobalt fallback if direct ytdl fails.
-        // Better yet: distube/ytdl-core creates agent automatically.
-        agent = ytdl.createAgent(JSON.parse(fs.readFileSync(cookiePath)));
+        const content = fs.readFileSync(cookiePath, 'utf8');
+        let cookies;
+        try {
+            cookies = JSON.parse(content);
+        } catch (e) {
+            console.log('⚠️ Cookies not JSON, attempting Netscape parse...');
+            cookies = parseNetscapeCookies(content);
+        }
+
+        if (cookies && cookies.length > 0) {
+            console.log(`✅ Loaded ${cookies.length} cookies.`);
+            agent = ytdl.createAgent(cookies);
+        }
     }
 } catch (e) {
-    console.log('⚠️ Could not load cookies for ytdl-core (Expect Netscape/JSON mismatch or missing file):', e.message);
-    // If it fails (e.g. malformed JSON), we continue without agent
+    console.log('⚠️ Could not load cookies:', e.message);
 }
 
 // ---------------------------------------------------------
@@ -58,29 +82,38 @@ try {
 async function fallbackToCobalt(url) {
     console.log('⚠️ Triggering Cobalt Fallback for:', url);
     const instances = [
-        'https://api.cobalt.tools',
-        'https://co.wuk.sh',
-        'https://cobalt.api.kwiatekmiki.pl',
-        'https://api.cobalt.best'
+        { url: 'https://api.cobalt.tools', endpoint: '/' }, // Official (strict)
+        { url: 'https://co.wuk.sh', endpoint: '/api/json' },
+        { url: 'https://cobalt.api.kwiatekmiki.pl', endpoint: '/api/json' },
+        { url: 'https://api.cobalt.best', endpoint: '/' },
+        { url: 'https://cobalt.publications.wiki', endpoint: '/api/json' }
     ];
 
-    for (const domain of instances) {
+    const errors = [];
+
+    for (const instance of instances) {
         try {
-            console.log(`Trying Cobalt instance: ${domain}`);
-            const response = await axios.post(`${domain}/api/json`, {
+            const apiTarget = `${instance.url}${instance.endpoint}`;
+            console.log(`Trying Cobalt instance: ${apiTarget}`);
+
+            const response = await axios.post(apiTarget, {
                 url: url,
                 vCodec: 'h264',
                 vQuality: 'max',
                 aFormat: 'mp3',
                 filenamePattern: 'basic'
             }, {
-                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                timeout: 10000
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                },
+                timeout: 8000
             });
 
             const data = response.data;
-            if (data && (data.url || data.picker)) {
-                console.log(`✅ Cobalt Success via ${domain}`);
+            if (data && (data.url || data.picker || data.audio)) { // added data.audio check
+                console.log(`✅ Cobalt Success via ${instance.url}`);
                 let formats = [];
                 if (data.picker) {
                     formats = data.picker.map(p => ({
@@ -98,19 +131,33 @@ async function fallbackToCobalt(url) {
                         url: data.url,
                         type: 'video'
                     });
+                } else if (data.audio) { // Sometimes audio only
+                    formats.push({
+                        quality: 'Audio Only',
+                        itag: 'cobalt_audio',
+                        container: 'mp3',
+                        url: data.audio,
+                        type: 'audio'
+                    });
                 }
+
+                if (formats.length === 0) throw new Error("No formats found in Cobalt response");
+
                 return {
                     platform: 'Cobalt-Fallback',
                     title: 'Media (via Cobalt)',
                     thumbnail: null,
                     formats: formats
                 };
+            } else {
+                throw new Error("Invalid Cobalt Response: " + JSON.stringify(data));
             }
         } catch (e) {
-            console.warn(`❌ Cobalt instance ${domain} failed:`, e.message);
+            console.warn(`❌ Cobalt instance ${instance.url} failed:`, e.message);
+            errors.push(`${instance.url}: ${e.message}`);
         }
     }
-    throw new Error('All Cobalt fallback instances failed.');
+    throw new Error('All Cobalt fallback instances failed. Details: ' + errors.join(' | '));
 }
 
 // ---------------------------------------------------------
@@ -224,7 +271,7 @@ app.post('/api/info', async (req, res) => {
             return res.json(cobalt);
         } catch (fbError) {
             console.error('Fallback failed:', fbError.message);
-            res.status(500).json({ error: 'Failed to fetch info via direct or fallback methods.' });
+            res.status(500).json({ error: `Failed to fetch info. Main: ${error.message} | Fallback: ${fbError.message}` });
         }
     }
 });
