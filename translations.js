@@ -13,7 +13,13 @@ const translations = {
         footer: "Running V7 Phoenix Engine • Secure & Private",
         error_url: "Please enter a valid URL",
         error_meta: "⚠️ Service disabled upon request by Meta.",
-        meta_tooltip: "Service Disabled"
+        meta_tooltip: "Service Disabled",
+        // New Keys
+        nav_downloader: "Downloader",
+        support_title: "☕ Support Me",
+        support_desc: "Help keep the servers alive!",
+        btn_patreon: "Join Patreon",
+        wallet_label: "USDT (TRC20)"
     },
     tr: {
         title: "<span class='gradient-text'>Her Şeyi</span> İndir.",
@@ -29,9 +35,15 @@ const translations = {
         footer: "V7 Phoenix Motoru • Güvenli ve Gizli",
         error_url: "Lütfen geçerli bir link girin",
         error_meta: "⚠️ Bu hizmet Meta talebi üzerine devre dışı bırakılmıştır.",
-        meta_tooltip: "Hizmet Devre Dışı"
+        meta_tooltip: "Hizmet Devre Dışı",
+        // New Keys
+        nav_downloader: "İndirici",
+        support_title: "☕ Destek Ol",
+        support_desc: "Sunucuları açık tutmamıza yardım et!",
+        btn_patreon: "Patreon'a Katıl",
+        wallet_label: "USDT (TRC20)"
     },
-    zh: { // Chinese
+    zh: {
         title: "下载 <span class='gradient-text'>任何内容。</span>",
         subtitle: "高级视频下载器",
         placeholder: "粘贴链接...",
@@ -45,9 +57,15 @@ const translations = {
         footer: "运行 V7 Phoenix 引擎 • 安全私密",
         error_url: "请输入有效的链接",
         error_meta: "⚠️ 应 Meta 请求，服务已禁用。",
-        meta_tooltip: "服务已禁用"
+        meta_tooltip: "服务已禁用",
+        // New Keys
+        nav_downloader: "下载器",
+        support_title: "☕ 支持我",
+        support_desc: "帮助维持服务器运行！",
+        btn_patreon: "加入 Patreon",
+        wallet_label: "USDT (TRC20)"
     },
-    de: { // German
+    de: {
         title: "Lade <span class='gradient-text'>Alles</span> herunter.",
         subtitle: "Premium Video Downloader",
         placeholder: "Link hier einfügen...",
@@ -61,9 +79,15 @@ const translations = {
         footer: "V7 Phoenix Engine • Sicher & Privat",
         error_url: "Bitte geben Sie einen gültigen Link ein",
         error_meta: "⚠️ Dienst auf Anfrage von Meta deaktiviert.",
-        meta_tooltip: "Dienst deaktiviert"
+        meta_tooltip: "Dienst deaktiviert",
+        // New Keys
+        nav_downloader: "Downloader",
+        support_title: "☕ Unterstütze Mich",
+        support_desc: "Hilf, die Server am Laufen zu halten!",
+        btn_patreon: "Patreon Beitreten",
+        wallet_label: "USDT (TRC20)"
     },
-    ru: { // Russian
+    ru: {
         title: "Скачивай <span class='gradient-text'>Всё.</span>",
         subtitle: "Премиум загрузчик видео",
         placeholder: "Вставьте ссылку...",
@@ -77,9 +101,15 @@ const translations = {
         footer: "Движок V7 Phoenix • Безопасно",
         error_url: "Пожалуйста, введите корректную ссылку",
         error_meta: "⚠️ Услуга отключена по запросу Meta.",
-        meta_tooltip: "Услуга отключена"
+        meta_tooltip: "Услуга отключена",
+        // New Keys
+        nav_downloader: "Загрузчик",
+        support_title: "☕ Поддержать",
+        support_desc: "Помогите поддерживать серверы!",
+        btn_patreon: "Patreon",
+        wallet_label: "USDT (TRC20)"
     },
-    ar: { // Arabic (RTL)
+    ar: {
         title: "تحميل <span class='gradient-text'>أي شيء.</span>",
         subtitle: "برنامج تحميل فيديو متميز",
         placeholder: "الصق الرابط هنا...",
@@ -93,9 +123,15 @@ const translations = {
         footer: "محرك فينكس V7 • آمن وخاص",
         error_url: "يرجى إدخال رابط صالح",
         error_meta: "⚠️ تم تعطيل الخدمة بناءً على طلب Meta.",
-        meta_tooltip: "الخدمة معطلة"
+        meta_tooltip: "الخدمة معطلة",
+        // New Keys
+        nav_downloader: "التحميل",
+        support_title: "☕ ادعمني",
+        support_desc: "ساعد في إبقاء الخوادم تعمل!",
+        btn_patreon: "انضم إلى Patreon",
+        wallet_label: "USDT (TRC20)"
     },
-    fr: { // French
+    fr: {
         title: "Téléchargez <span class='gradient-text'>Tout.</span>",
         subtitle: "Téléchargeur Vidéo Premium",
         placeholder: "Collez le lien ici...",
@@ -109,9 +145,15 @@ const translations = {
         footer: "Moteur V7 Phoenix • Sécurisé",
         error_url: "Veuillez entrer un lien valide",
         error_meta: "⚠️ Service désactivé à la demande de Meta.",
-        meta_tooltip: "Service Désactivé"
+        meta_tooltip: "Service Désactivé",
+        // New Keys
+        nav_downloader: "Téléchargeur",
+        support_title: "☕ Soutenez-moi",
+        support_desc: "Aidez à garder les serveurs actifs !",
+        btn_patreon: "Rejoindre Patreon",
+        wallet_label: "USDT (TRC20)"
     },
-    es: { // Spanish
+    es: {
         title: "Descarga <span class='gradient-text'>Todo.</span>",
         subtitle: "Descargador de Video Premium",
         placeholder: "Pega el enlace aquí...",
@@ -125,9 +167,15 @@ const translations = {
         footer: "Motor V7 Phoenix • Seguro y Privado",
         error_url: "Por favor ingrese un enlace válido",
         error_meta: "⚠️ Servicio deshabilitado a petición de Meta.",
-        meta_tooltip: "Servicio Deshabilitado"
+        meta_tooltip: "Servicio Deshabilitado",
+        // New Keys
+        nav_downloader: "Descargador",
+        support_title: "☕ Apóyame",
+        support_desc: "¡Ayuda a mantener los servidores!",
+        btn_patreon: "Unirse a Patreon",
+        wallet_label: "USDT (TRC20)"
     },
-    jp: { // Japanese
+    jp: {
         title: "<span class='gradient-text'>何でも</span>ダウンロード",
         subtitle: "プレミアム動画ダウンローダー",
         placeholder: "リンクを貼り付け...",
@@ -141,9 +189,15 @@ const translations = {
         footer: "V7 Phoenix エンジン • 安全でプライベート",
         error_url: "有効なリンクを入力してください",
         error_meta: "⚠️ Metaのリクエストによりサービス停止中。",
-        meta_tooltip: "サービス停止"
+        meta_tooltip: "サービス停止",
+        // New Keys
+        nav_downloader: "ダウンローダー",
+        support_title: "☕ サポートする",
+        support_desc: "サーバーの維持にご協力ください！",
+        btn_patreon: "Patreonに参加",
+        wallet_label: "USDT (TRC20)"
     },
-    kr: { // Korean
+    kr: {
         title: "<span class='gradient-text'>무엇이든</span> 다운로드",
         subtitle: "프리미엄 비디오 다운로더",
         placeholder: "링크 붙여넣기...",
@@ -157,6 +211,12 @@ const translations = {
         footer: "V7 Phoenix 엔진 • 안전 및 보안",
         error_url: "유효한 링크를 입력하세요",
         error_meta: "⚠️ Meta의 요청으로 서비스가 비활성화되었습니다.",
-        meta_tooltip: "서비스 비활성화"
+        meta_tooltip: "서비스 비활성화",
+        // New Keys
+        nav_downloader: "다운로더",
+        support_title: "☕ 후원하기",
+        support_desc: "서버 유지에 도움을 주세요!",
+        btn_patreon: "Patreon 가입",
+        wallet_label: "USDT (TRC20)"
     }
 };

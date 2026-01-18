@@ -32,7 +32,7 @@
                     <i class="fa-solid fa-globe"></i>
                 </a>
 
-                <a href="#" class="active">Downloader</a>
+                <a href="#" class="active" data-i18n="nav_downloader">Downloader</a>
                 <!-- Support Button (Heart) -->
                 <a href="#" onclick="document.getElementById('supportModal').classList.add('show')" title="Support Me">
                     <i class="fa-solid fa-heart" style="color: #ff0055;"></i>
@@ -128,7 +128,7 @@
         <div class="modal-content">
             <span class="close-modal"
                 onclick="document.getElementById('langModal').classList.remove('show')">&times;</span>
-            <h2 style="margin-bottom: 20px;">🌍 Select Language</h2>
+            <h2 style="margin-bottom: 20px;" data-i18n="lang_select_title">🌍 Select Language</h2>
             <div class="lang-grid">
                 <div class="lang-option" onclick="changeLanguage('en')" title="English">🇺🇸</div>
                 <div class="lang-option" onclick="changeLanguage('tr')" title="Türkçe">🇹🇷</div>
@@ -149,18 +149,18 @@
         <div class="modal-content">
             <span class="close-modal"
                 onclick="document.getElementById('supportModal').classList.remove('show')">&times;</span>
-            <h2 style="margin-bottom: 5px;">☕ Support Me</h2>
-            <p style="color: #aaa; margin-bottom: 20px;">Help keep the servers alive!</p>
+            <h2 style="margin-bottom: 5px;" data-i18n="support_title">☕ Support Me</h2>
+            <p style="color: #aaa; margin-bottom: 20px;" data-i18n="support_desc">Help keep the servers alive!</p>
 
             <div class="support-links">
                 <a href="https://www.patreon.com/15430131/join" target="_blank" class="patreon-btn"
                     style="display: block; background: #FF424D; color: white; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: bold; margin-bottom: 15px; transition: 0.2s;">
-                    <i class="fa-brands fa-patreon"></i> Join Patreon
+                    <i class="fa-brands fa-patreon"></i> <span data-i18n="btn_patreon">Join Patreon</span>
                 </a>
 
                 <div class="crypto-box">
                     <div style="margin-bottom: 8px; color: #ffd700; font-weight: bold;">
-                        <i class="fa-brands fa-bitcoin"></i> USDT (TRC20)
+                        <i class="fa-brands fa-bitcoin"></i> <span data-i18n="wallet_label">USDT (TRC20)</span>
                     </div>
                     <div
                         style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid #333;">
