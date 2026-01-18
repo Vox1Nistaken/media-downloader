@@ -133,7 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                if (!res.ok) throw new Error('Server Error');
+                if (!res.ok) {
+                    // Try to parse JSON error
+                    const errorText = await res.text();
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        throw new Error(errorJson.error || 'Server Error');
+                    } catch (parseErr) {
+                        // If not JSON, use text or default
+                        throw new Error(errorText || 'Server Error');
+                    }
+                }
 
                 // Trigger Blob Download
                 const blob = await res.blob();
@@ -163,7 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error(e);
                 clearInterval(progressInterval);
                 const t = translations[currentLang] || translations['en'];
-                status.textContent = 'Server Error: Check logs or try another video.';
+
+                // Try to show specific server error if available in the error object/response
+                let msg = e.message;
+                if (msg === 'Server Error') msg = 'Server internal error. Check console.';
+
+                // If the error message is a JSON string (from our new server logic?), no, fetch throws on !ok. 
+                // We need to parse the response body in the logic above.
+
+                status.textContent = `❌ ${msg}`;
                 status.className = 'status-msg error';
                 status.classList.remove('hidden');
                 btn.disabled = false;

@@ -217,7 +217,25 @@ app.get('/api/download', async (req, res) => {
         process.stderr.on('data', d => errorLog += d.toString());
 
         process.on('close', code => {
-            if (code !== 0) {
+            if (code === 0) {
+                console.log(`[Download Complete] ${tempPath}`);
+                if (!fs.existsSync(tempPath)) {
+                    return res.status(500).json({ error: 'File missing after successful download process' });
+                }
+                res.download(tempPath, `${safeTitle}.mp4`, err => {
+                    if (err) console.error('Send Error:', err);
+                    // Cleanup temp file after download is sent or fails to send
+                    setTimeout(() => {
+                        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+                    }, 60000); // Keep for 1 min just in case
+                });
+            } else {
+                console.error(`[Download Error] Exited with ${code}`);
+                console.error('STDERR:', errorLog);
+
+                // Clean up empty/partial file
+                if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+
                 // ANALYZE ERROR - Graceful Degradation
                 const err = errorLog.toLowerCase();
 
@@ -226,26 +244,11 @@ app.get('/api/download', async (req, res) => {
                     return res.status(403).json({ error: 'RESTRICTED_CONTENT' });
                 }
 
-                // Genuine Failure
-                console.error(`[Download Fail] Code: ${code}`);
-                const safeLog = errorLog.slice(-500).replace(/\n/g, ' ');
-                return res.status(500).send(`Server Error: ${safeLog}`);
+                res.status(500).send('Internal Server Error');
             }
-
-            if (!fs.existsSync(tempPath)) return res.status(500).send('File missing after download');
-
-            res.download(tempPath, `${safeTitle}.mp4`, err => {
-                if (err) console.error('Send Error', err);
-                fs.unlink(tempPath, () => { });
-            });
         });
 
-    } catch (e) {
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Phoenix V4 Engine running on ${PORT}`);
-    console.log(`FFmpeg: ${ffmpegPath}`);
-});
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Phoenix V4 Engine running on ${PORT}`);
+            console.log(`FFmpeg: ${ffmpegPath}`);
+        });
