@@ -74,14 +74,14 @@ app.get('/api/download', async (req, res) => {
 
     console.log(`Starting HQ Download: ${url} [${quality}]`);
 
-    // Determine Format - FORCE HQ, Remove fallback to 'best' to prevent 144p
-    // If ffmpeg is missing, this will fail, which is better than silence.
-    let formatArg = 'bestvideo+bestaudio'; // Strict merge
+    // Determine Format
+    // We try to merge best video+audio. If that fails (or ffmpeg missing), fallback to 'best' (single file)
+    let formatArg = 'bestvideo+bestaudio/best';
 
-    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio';
-    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio';
-    else if (quality === 'audio') formatArg = 'bestaudio';
+    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best';
+    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best';
+    else if (quality === 'audio') formatArg = 'bestaudio/best';
 
     // Generate Safe Filename
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
@@ -89,9 +89,18 @@ app.get('/api/download', async (req, res) => {
     const tempPath = path.join(tempDir, tempFilename);
 
     try {
-        console.log(`Using strict format: ${formatArg}`);
+        // Dynamic FFmpeg Path Detection
+        let ffmpegPath = '';
+        try {
+            const { execSync } = require('child_process');
+            ffmpegPath = execSync('which ffmpeg').toString().trim();
+            console.log(`Found ffmpeg at: ${ffmpegPath}`);
+        } catch (e) {
+            console.error('FFmpeg not found in PATH! Merging will fail.');
+        }
 
-        // Spawn yt-dlp - Rely on PATH for ffmpeg (safer than hardcoded path if installed via apt)
+        console.log(`Using format: ${formatArg}`);
+
         const args = [
             url,
             '-f', formatArg,
@@ -103,6 +112,11 @@ app.get('/api/download', async (req, res) => {
             '--force-ipv4',
             '--verbose'
         ];
+
+        // Only add ffmpeg-location if found
+        if (ffmpegPath) {
+            args.push('--ffmpeg-location', ffmpegPath);
+        }
 
         const ytProcess = spawn('yt-dlp', args);
 
