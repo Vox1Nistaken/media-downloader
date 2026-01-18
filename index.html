@@ -4,10 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediaX V4 - Premium Downloader</title>
+    <title>MediaX | Ultimate Downloader</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -25,7 +26,26 @@
             <div class="logo">
                 <i class="fa-solid fa-bolt"></i> Media<span class="highlight">X</span>
             </div>
-            <nav>
+            <nav class="nav-right">
+                <!-- Language Selector -->
+                <div class="lang-dropdown" id="langDropdown">
+                    <button class="lang-btn" onclick="toggleLangMenu()">
+                        <i class="fa-solid fa-globe"></i> <span id="currentLang">EN</span>
+                    </button>
+                    <div class="lang-menu" id="langMenu">
+                        <div onclick="changeLanguage('en')">🇺🇸 English</div>
+                        <div onclick="changeLanguage('tr')">🇹🇷 Türkçe</div>
+                        <div onclick="changeLanguage('de')">🇩🇪 Deutsch</div>
+                        <div onclick="changeLanguage('fr')">🇫🇷 Français</div>
+                        <div onclick="changeLanguage('es')">🇪🇸 Español</div>
+                        <div onclick="changeLanguage('ru')">🇷🇺 Русский</div>
+                        <div onclick="changeLanguage('zh')">🇨🇳 中文</div>
+                        <div onclick="changeLanguage('jp')">🇯🇵 日本語</div>
+                        <div onclick="changeLanguage('kr')">🇰🇷 한국어</div>
+                        <div onclick="changeLanguage('ar')">🇸🇦 العربية</div>
+                    </div>
+                </div>
+
                 <a href="#" class="active">Downloader</a>
                 <!-- Support Button (Heart) -->
                 <a href="#" onclick="document.getElementById('supportModal').classList.add('show')" title="Support Me">
@@ -37,13 +57,14 @@
         <!-- Downloader Card -->
         <main>
             <div class="glass-card main-card">
-                <h1 class="hero-title">Download <span class="gradient-text">Anything.</span></h1>
-                <p class="hero-subtitle">Premium Video Downloader</p>
+                <h1 class="hero-title" data-i18n="title">Download <span class="gradient-text">Anything.</span></h1>
+                <p class="hero-subtitle" data-i18n="subtitle">Premium Video Downloader</p>
 
                 <!-- Platform Icons -->
                 <div class="platform-icons">
                     <i class="fa-brands fa-youtube" title="YouTube"></i>
-                    <i class="fa-brands fa-instagram" title="Bu hizmet devre dışı" style="cursor: pointer;"></i>
+                    <i class="fa-brands fa-instagram" title="Service Disabled" data-i18n-title="meta_tooltip"
+                        style="cursor: pointer;"></i>
                     <i class="fa-brands fa-tiktok" title="TikTok"></i>
                     <i class="fa-brands fa-square-facebook" title="Facebook"></i>
                     <i class="fa-brands fa-x-twitter" title="X (Twitter)"></i>
@@ -52,7 +73,8 @@
                 <!-- Input Area -->
                 <div class="input-wrapper">
                     <i class="fa-solid fa-link input-icon"></i>
-                    <input type="text" id="urlInput" placeholder="Paste link from any site..." autocomplete="off">
+                    <input type="text" id="urlInput" placeholder="Paste link from any site..."
+                        data-i18n-placeholder="placeholder" autocomplete="off">
                     <button id="pasteBtn" class="icon-btn"><i class="fa-regular fa-paste"></i></button>
                 </div>
 
@@ -61,21 +83,24 @@
                     <div class="custom-dropdown" id="customQualityDropdown">
                         <div class="dropdown-selected" onclick="toggleDropdown()">
                             <i class="fa-solid fa-sliders"></i>
-                            <span id="selectedQualityText">Max Quality (1080p/2K MP4)</span>
+                            <span id="selectedQualityText" data-i18n="quality_max">Max Quality (1080p/2K MP4)</span>
                             <i class="fa-solid fa-chevron-down arrow-icon"></i>
                         </div>
                         <div class="dropdown-options">
-                            <div class="dropdown-item active"
-                                onclick="selectQuality('highest', 'Max Quality (1080p/2K MP4)')">
+                            <div class="dropdown-item active" onclick="selectQuality('highest', 'quality_max')"
+                                data-i18n="quality_max">
                                 Max Quality (1080p/2K MP4)
                             </div>
-                            <div class="dropdown-item" onclick="selectQuality('1080p', '1080p Full HD (MP4)')">
+                            <div class="dropdown-item" onclick="selectQuality('1080p', 'quality_1080')"
+                                data-i18n="quality_1080">
                                 1080p Full HD (MP4)
                             </div>
-                            <div class="dropdown-item" onclick="selectQuality('720p', '720p HD (MP4)')">
+                            <div class="dropdown-item" onclick="selectQuality('720p', 'quality_720')"
+                                data-i18n="quality_720">
                                 720p HD (MP4)
                             </div>
-                            <div class="dropdown-item" onclick="selectQuality('audio', 'Audio Only (MP3)')">
+                            <div class="dropdown-item" onclick="selectQuality('audio', 'quality_audio')"
+                                data-i18n="quality_audio">
                                 Audio Only (MP3)
                             </div>
                         </div>
@@ -86,7 +111,8 @@
 
                 <!-- Action Button -->
                 <button id="downloadBtn" class="primary-btn">
-                    <span class="btn-content"><i class="fa-solid fa-download"></i> Start Download</span>
+                    <span class="btn-content"><i class="fa-solid fa-download"></i> <span data-i18n="btn_download">Start
+                            Download</span></span>
                     <div class="loader hidden"></div>
                 </button>
 
@@ -107,7 +133,7 @@
         </main>
 
         <footer>
-            <p>Running V6 Phoenix Engine • Secure & Private</p>
+            <p data-i18n="footer">Running V7 Phoenix Engine • Secure & Private</p>
         </footer>
     </div>
 
@@ -144,6 +170,7 @@
         </div>
     </div>
 
+    <script src="translations.js"></script>
     <script src="script.js"></script>
 </body>
 

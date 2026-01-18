@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // V6.4: INSTAGRAM BLOCK (User Request)
         if (url.includes('instagram.com')) {
-            showError('⚠️ Service disabled upon request by Meta.');
+            const t = translations[currentLang] || translations['en'];
+            showError(t.error_meta);
             return;
         }
 
@@ -180,6 +181,84 @@ document.addEventListener('DOMContentLoaded', () => {
     // User requested to remove the UI. Logic requires manual server access if needed.
 });
 
+// --- 4. LANGUAGE LOGIC ---
+let currentLang = 'en';
+
+window.toggleLangMenu = function () {
+    document.getElementById('langMenu').classList.toggle('show');
+};
+
+window.changeLanguage = function (lang) {
+    currentLang = lang;
+    const t = translations[lang] || translations['en'];
+
+    // 1. Update Buttons/Text
+    document.getElementById('currentLang').textContent = lang.toUpperCase();
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) el.innerHTML = t[key];
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (t[key]) el.placeholder = t[key];
+    });
+
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (t[key]) el.title = t[key];
+    });
+
+    // 2. Update Dropdown Text (Selected)
+    // We need to find the currently selected key and translate it
+    const currentQVal = document.getElementById('qualitySelect').value;
+    // Map values to translation keys
+    const qMap = {
+        'highest': 'quality_max',
+        '1080p': 'quality_1080',
+        '720p': 'quality_720',
+        'audio': 'quality_audio'
+    };
+    const qKey = qMap[currentQVal];
+    if (qKey && t[qKey]) {
+        document.getElementById('selectedQualityText').textContent = t[qKey];
+    }
+
+    // 3. Handle RTL (Arabic)
+    if (lang === 'ar') {
+        document.body.classList.add('rtl');
+    } else {
+        document.body.classList.remove('rtl');
+    }
+
+    document.getElementById('langMenu').classList.remove('show');
+    localStorage.setItem('mediax_lang', lang);
+};
+
+// Auto-Detect Language on Load
+document.addEventListener('DOMContentLoaded', () => {
+    // Check saved -> then browser -> default en
+    const saved = localStorage.getItem('mediax_lang');
+    const browser = navigator.language.slice(0, 2);
+    const supported = Object.keys(translations);
+
+    if (saved && supported.includes(saved)) {
+        changeLanguage(saved);
+    } else if (supported.includes(browser)) {
+        changeLanguage(browser);
+    } else {
+        changeLanguage('en');
+    }
+
+    // Hide menus on click outside
+    window.addEventListener('click', (e) => {
+        if (!e.target.closest('.lang-dropdown')) {
+            document.getElementById('langMenu').classList.remove('show');
+        }
+    });
+});
+
 // --- CUSTOM DROPDOWN LOGIC ---
 // Exposed to global scope for onclick events in HTML
 window.toggleDropdown = function () {
@@ -187,11 +266,13 @@ window.toggleDropdown = function () {
     dropdown.classList.toggle('open');
 };
 
-window.selectQuality = function (value, text) {
-    // 1. Update UI Text
-    document.getElementById('selectedQualityText').textContent = text;
+// MODIFIED: Accepts translation key now
+window.selectQuality = function (value, key) {
+    // 1. Update UI Text (Translate immediately)
+    const t = translations[currentLang] || translations['en'];
+    document.getElementById('selectedQualityText').textContent = t[key];
 
-    // 2. Update Hidden Input Value (which the downloader reads)
+    // 2. Update Hidden Input Value
     document.getElementById('qualitySelect').value = value;
 
     // 3. Update Active Styling
@@ -220,8 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (igIcon) {
         igIcon.style.cursor = 'pointer'; // Make it look clickable
         igIcon.onclick = () => {
+            const t = translations[currentLang] || translations['en'];
             const statusMsg = document.getElementById('statusMsg');
-            statusMsg.textContent = '⚠️ Service disabled upon request by Meta.';
+            statusMsg.textContent = t.error_meta;
             statusMsg.className = 'status-msg error';
             statusMsg.classList.remove('hidden');
 
