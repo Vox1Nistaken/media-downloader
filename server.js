@@ -166,105 +166,106 @@ app.get('/api/download', async (req, res) => {
 
     // QUALITY LOGIC
     if (quality === 'audio') {
-        // STRICT AUDIO: No fallback to video.
-        args.push('-f', 'bestaudio[ext=m4a]/bestaudio');
-    } else {
-        // VIDEO LOGIC: Use Sorting (-S) instead of strict format strings.
-        // This tells yt-dlp: "Give me the best video closer to this res, standard codec."
-        // res:1080 means "Best resolution, capped at 1080" roughly, but we force limits.
+        // QUALITY LOGIC (OPTIMIZED FOR SPEED V7)
+        // We removed strict 'res:1440' and 'vcodec:h264' which forced slow re-encoding.
+        // Now we use best available video <= 1080p + best audio, merging them efficiently.
 
-        let resLimit = 'res:1080';
-        if (quality === 'highest') resLimit = 'res:1440'; // 2K
-        if (quality === '720p') resLimit = 'res:720';
-
-        // "vcodec:h264" ensures MP4 compatibility. "+acodec:m4a" ensures good audio.
-        args.push('-S', `${resLimit},vcodec:h264,acodec:m4a`);
-
-        // Also strictly cap height to avoid mistakes if sorting fails
-        // CLIENT STRATEGY: DYNAMIC
-        // We only apply YouTube-specific 'player_client' args if the URL is actually YouTube.
-        // For TikTok, IG, FB, etc., we let yt-dlp use its default extractors.
-        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
-
-        if (isYoutube) {
-            if (hasCookies) {
-                args.push('--cookies', COOKIE_PATH);
-                args.push('--extractor-args', 'youtube:player_client=tv');
-            } else {
-                // Guest YT: Default Web client is safest now.
-            }
+        if (quality === 'audio') {
+            args.push('-f', 'bestaudio/best'); // Simple audio
         } else {
-            // Other Platforms (TikTok, IG, Twitter, FB)
-            // Usually don't need cookies or specific clients, but if 'cookies.txt' contains them, passing it is fine.
-            if (hasCookies) args.push('--cookies', COOKIE_PATH);
+            // VIDEO: 
+            // 1. "bv*[height<=1080]" -> Get best video up to 1080p (avoids 2K/4K VP9 re-encodes)
+            // 2. "+ba" -> Add best audio
+            // 3. "/b" -> Fallback to best single file
 
-            // V6.3: MOBILE SPOOFING FOR DOWNLOADS
-            args.push('--user-agent', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36');
-        }
-    }
+            let formatStr = 'bv*[height<=1080]+ba/b';
 
-    // Resilience Flags
-    args.push('--ignore-errors'); // Don't crash on minor playlist/subs errors
-    args.push('--no-warnings');
-
-    // 3. Execute
-    try {
-        // Resolve yt-dlp binary path manually to avoid PATH issues
-        const ytDlpBinary = path.join(__dirname, 'node_modules', 'yt-dlp-exec', 'bin', 'yt-dlp');
-
-        // Fallback for Windows local dev vs Linux VPS
-        const binary = fs.existsSync(ytDlpBinary) ? ytDlpBinary : 'yt-dlp';
-
-        console.log(`[V4 Exec] ${binary} ${args.join(' ')}`);
-
-        const process = spawn(binary, args);
-        let errorLog = '';
-
-        process.stderr.on('data', d => errorLog += d.toString());
-
-        // CRITICAL: Catch spawn errors (like ENOENT / Command not found)
-        process.on('error', (spawnErr) => {
-            console.error('[Spawn Error]', spawnErr);
-            if (!res.headersSent) {
-                res.status(500).json({ error: `Spawn Failed: ${spawnErr.message}` });
+            if (quality === '720p') {
+                formatStr = 'bv*[height<=720]+ba/b';
             }
-        });
 
-        process.on('close', code => {
-            if (code === 0) {
-                console.log(`[Download Complete] ${tempPath}`);
-                if (!fs.existsSync(tempPath)) {
-                    if (!res.headersSent) res.status(500).json({ error: 'File missing after successful download process' });
-                    return;
+            args.push('-f', formatStr);
+            // Removing '-S' (Sorting) to strictly assume format selection
+
+            // Ensure MP4 container for compatibility, but allow stream copy
+            args.push('--merge-output-format', 'mp4');
+
+            const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+            if (isYoutube) {
+                if (hasCookies) {
+                    args.push('--cookies', COOKIE_PATH);
+                    args.push('--extractor-args', 'youtube:player_client=tv');
                 }
-                res.download(tempPath, `${safeTitle}.mp4`, err => {
-                    if (err) console.error('Send Error:', err);
-                    // Cleanup temp file
-                    setTimeout(() => {
-                        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-                    }, 60000);
-                });
             } else {
-                console.error(`[Download Error] Exited with ${code}`);
-                console.error('STDERR:', errorLog);
+                if (hasCookies) args.push('--cookies', COOKIE_PATH);
 
-                if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-
-                const err = errorLog.toLowerCase();
-                if (err.includes('sign in') || err.includes('login required')) {
-                    if (!res.headersSent) res.status(403).json({ error: 'RESTRICTED_CONTENT' });
-                    return;
-                }
-
-                if (!res.headersSent) res.status(500).json({ error: errorLog || `Process exited with code ${code}` });
+                // V6.3: MOBILE SPOOFING
+                args.push('--user-agent', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36');
             }
-        });
+        }
 
-    } catch (e) {
-        console.error('Download Endpoint Error:', e);
-        if (!res.headersSent) res.status(500).send(`Internal Server Error: ${e.message}`);
-    }
-});
+        // Resilience Flags
+        args.push('--ignore-errors'); // Don't crash on minor playlist/subs errors
+        args.push('--no-warnings');
+
+        // 3. Execute
+        try {
+            // Resolve yt-dlp binary path manually to avoid PATH issues
+            const ytDlpBinary = path.join(__dirname, 'node_modules', 'yt-dlp-exec', 'bin', 'yt-dlp');
+
+            // Fallback for Windows local dev vs Linux VPS
+            const binary = fs.existsSync(ytDlpBinary) ? ytDlpBinary : 'yt-dlp';
+
+            console.log(`[V4 Exec] ${binary} ${args.join(' ')}`);
+
+            const process = spawn(binary, args);
+            let errorLog = '';
+
+            process.stderr.on('data', d => errorLog += d.toString());
+
+            // CRITICAL: Catch spawn errors (like ENOENT / Command not found)
+            process.on('error', (spawnErr) => {
+                console.error('[Spawn Error]', spawnErr);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: `Spawn Failed: ${spawnErr.message}` });
+                }
+            });
+
+            process.on('close', code => {
+                if (code === 0) {
+                    console.log(`[Download Complete] ${tempPath}`);
+                    if (!fs.existsSync(tempPath)) {
+                        if (!res.headersSent) res.status(500).json({ error: 'File missing after successful download process' });
+                        return;
+                    }
+                    res.download(tempPath, `${safeTitle}.mp4`, err => {
+                        if (err) console.error('Send Error:', err);
+                        // Cleanup temp file
+                        setTimeout(() => {
+                            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+                        }, 60000);
+                    });
+                } else {
+                    console.error(`[Download Error] Exited with ${code}`);
+                    console.error('STDERR:', errorLog);
+
+                    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+
+                    const err = errorLog.toLowerCase();
+                    if (err.includes('sign in') || err.includes('login required')) {
+                        if (!res.headersSent) res.status(403).json({ error: 'RESTRICTED_CONTENT' });
+                        return;
+                    }
+
+                    if (!res.headersSent) res.status(500).json({ error: errorLog || `Process exited with code ${code}` });
+                }
+            });
+
+        } catch (e) {
+            console.error('Download Endpoint Error:', e);
+            if (!res.headersSent) res.status(500).send(`Internal Server Error: ${e.message}`);
+        }
+    });
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Phoenix V4 Engine running on ${PORT}`);
