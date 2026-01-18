@@ -82,9 +82,8 @@ app.get('/api/download', async (req, res) => {
             '--no-playlist',
             '--no-check-certificates',
             '--prefer-free-formats',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--referer', 'https://www.google.com/',
-            '--force-ipv4' // Critical for VPS to avoid blocks
+            '--extractor-args', 'youtube:player_client=android', // Spoof Android app to bypass DC blocks
+            '--force-ipv4'
         ];
 
         // spawn is robust for streaming
