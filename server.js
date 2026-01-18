@@ -137,7 +137,6 @@ app.get('/api/download', async (req, res) => {
     else if (quality === 'audio') formatArg = 'bestaudio/best';
 
     // 2. Build Args
-    const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
     const tempFilename = `${Date.now()}_${safeTitle}.mp4`; // Ext is .mp4 now
     const tempPath = path.join(tempDir, tempFilename);
 
