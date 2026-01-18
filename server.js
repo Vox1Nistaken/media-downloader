@@ -187,45 +187,6 @@ app.post('/api/info', async (req, res) => {
 });
 
 
-// Youtubedl structure from bochil usually has .video and .audio arrays or similar
-if (data.video) {
-    Object.entries(data.video).forEach(([quality, widthOrDetails]) => {
-        // Sometimes it returns simple object { 'auto': 'link', '360p': 'link' }
-        // Or complex object. Accessing .download() usually gives link.
-        // Let's assume simplest: key is quality, value is async func or awaitable.
-        // Check docs: await youtubedl(url) -> returns object where values are promises or direct?
-        // Actually bochil youtubedl returns metadata + .video, .audio objects with download methods.
-        formats.push({
-            quality: quality,
-            itag: quality, // verify
-            url: 'WILL_RESOLVE_ON_DOWNLOAD', // We might need to resolve now or proxy?
-            // Be careful: resolving now might expire links.
-            // Better: Frontend requests specific quality -> Backend resolves -> Redirect.
-            type: 'video'
-        });
-    });
-}
-
-// Simpler approach: savefrom usually returns direct links array
-if (Array.isArray(data)) {
-    data.forEach(item => {
-        if (item.url) {
-            formats.push({
-                quality: item.quality || item.subname || 'Unknown',
-                url: item.url,
-                type: 'video'
-            });
-        }
-    });
-}
-
-// Default fallback if structure is unknown (pass raw for debug if needed)
-if (formats.length === 0 && data.url) {
-    formats.push({ quality: 'Default', url: data.url, type: 'video' });
-}
-
-return formats;
-}
 
 // --- API: DOWNLOAD ---
 // Since link expiration is an issue, we resolve link here if needed
