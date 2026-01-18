@@ -76,6 +76,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // List of Cobalt instances to try (Client-Side)
+    const cobaltInstances = [
+        { url: 'https://api.cobalt.tools', endpoint: '/' }, // Official (strict)
+        { url: 'https://cobalt.154.53.56.156.nip.io', endpoint: '/api/json' },
+        { url: 'https://cobalt.dani.guru', endpoint: '/api/json' },
+        { url: 'https://cobalt.nao.2020.day', endpoint: '/api/json' },
+        { url: 'https://dl.khub.win', endpoint: '/api/json' },
+        { url: 'https://cobalt.q13.sbs', endpoint: '/api/json' },
+        { url: 'https://c.haber.lol', endpoint: '/api/json' },
+        { url: 'https://cobalt.kwiatekmiki.pl', endpoint: '/api/json' },
+        { url: 'https://api.cobalt.best', endpoint: '/' },
+        { url: 'https://co.wuk.sh', endpoint: '/api/json' },
+        { url: 'https://cobalt.publications.wiki', endpoint: '/api/json' },
+        { url: 'https://cobalt-api.kwiatekmiki.pl', endpoint: '/api/json' }
+    ];
+
     // Download Button
     downloadBtn.addEventListener('click', async () => {
         const url = urlInput.value.trim();
@@ -87,29 +103,96 @@ document.addEventListener('DOMContentLoaded', () => {
         startLoading();
 
         try {
-            const response = await fetch('/api/info', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
-            });
+            // Shuffle instances for load balancing
+            const shuffledInstances = [...cobaltInstances].sort(() => 0.5 - Math.random());
+            let success = false;
+            let finalData = null;
+            let errors = [];
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.error || errorData.details || 'API Request Failed';
-                throw new Error(errorMessage);
+            // Try instances one by one
+            for (const instance of shuffledInstances) {
+                try {
+                    console.log(`Trying: ${instance.url}`);
+                    const apiTarget = `${instance.url}${instance.endpoint}`;
+
+                    const response = await fetch(apiTarget, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            url: url,
+                            vCodec: 'h264',
+                            vQuality: 'max',
+                            aFormat: 'mp3',
+                            filenamePattern: 'basic'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data && (data.url || data.picker || data.audio)) {
+                        console.log('Success via:', instance.url);
+                        success = true;
+
+                        // Normalize data structure for UI
+                        finalData = {
+                            platform: 'Social Media (Detected)',
+                            title: 'Media Download',
+                            thumbnail: 'https://placehold.co/600x400/000000/FFF?text=Media+Found', // Default placebo
+                            formats: []
+                        };
+
+                        if (data.picker) {
+                            finalData.formats = data.picker.map(p => ({
+                                quality: p.type === 'video' ? 'Best Video' : 'Audio',
+                                itag: 'cobalt',
+                                container: 'mp4',
+                                url: p.url,
+                                type: p.type
+                            }));
+                        } else if (data.url) {
+                            finalData.formats.push({
+                                quality: 'Best Available',
+                                itag: 'cobalt',
+                                container: 'mp4',
+                                url: data.url,
+                                type: 'video'
+                            });
+                        } else if (data.audio) {
+                            finalData.formats.push({
+                                quality: 'Audio Only',
+                                itag: 'cobalt_audio',
+                                container: 'mp3',
+                                url: data.audio,
+                                type: 'audio'
+                            });
+                        }
+
+                        // Try to fetch real title/thumb if available (rare in Cobalt simplified, but sometimes present)
+                        // Cobalt often doesn't return metadata unless requested differently, 
+                        // but let's stick to simple download first.
+                        break; // Stop loop on success
+                    } else {
+                        throw new Error(`Invalid response key from ${instance.url}`);
+                    }
+
+                } catch (e) {
+                    console.warn(`Failed ${instance.url}:`, e);
+                    errors.push(e.message);
+                }
             }
 
-            const data = await response.json();
-
-            if (data.platform === 'Unknown' && (!data.formats || data.formats.length === 0)) {
-                alert('Platform not supported or video found.');
-                return;
+            if (!success || !finalData) {
+                throw new Error('All download servers failed. Please try again later. Details: ' + errors.slice(0, 3).join(', '));
             }
 
-            showResult(data);
+            // Show Result
+            showResult(finalData);
 
         } catch (error) {
-            console.error('Fetch Error Details:', error);
+            console.error('Download Logic Error:', error);
             alert('Error: ' + error.message);
         } finally {
             stopLoading();
@@ -127,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         processingMsg.style.textAlign = 'center';
         processingMsg.style.marginTop = '1rem';
         processingMsg.style.color = '#e2e8f0';
-        processingMsg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching Info...';
+        processingMsg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching best server...';
         document.querySelector('.downloader-card').appendChild(processingMsg);
     }
 
@@ -141,53 +224,33 @@ document.addEventListener('DOMContentLoaded', () => {
     function showResult(data) {
         resultArea.classList.remove('hidden');
 
-        let downloadLink = '#';
-        let safeTitle = (data.title || 'video').replace(/[^a-zA-Z0-9 \-_]/g, "").substring(0, 50);
-        const type = document.querySelector('input[name="format"]:checked').value;
+        // Simple single result for now (since we bypassed backend detailed parsing)
+        const format = data.formats[0];
+        const downloadLink = format.url;
 
-        // Generic logic for ALL platforms
-        if (data.formats && data.formats.length > 0) {
-            const format = data.formats[0];
-            downloadLink = `/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${format.itag}&type=${type}&title=${encodeURIComponent(safeTitle)}`;
-
-            // Dynamic Update
-            setTimeout(() => {
-                const qualitySelect = document.getElementById('qualitySelect');
-
-                if (data.formats.length > 0) {
-                    qualitySelect.innerHTML = '';
-                    data.formats.forEach(f => {
-                        if (f.height || f.quality.includes('p') || f.quality) {
-                            const option = document.createElement('option');
-                            option.value = f.itag;
-                            option.text = `${f.quality} ${f.container ? '(' + f.container + ')' : ''}`;
-                            qualitySelect.appendChild(option);
-                        }
-                    });
-
-                    downloadLink = `/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${data.formats[0].itag}&type=${type}&title=${encodeURIComponent(safeTitle)}`;
-                    document.querySelector('#resultArea a.primary-btn').href = downloadLink;
-                }
-
-                qualitySelect.onchange = () => {
-                    const selectedItag = qualitySelect.value;
-                    const currentType = document.querySelector('input[name="format"]:checked').value;
-                    const updatedLink = `/api/download?url=${encodeURIComponent(urlInput.value)}&itag=${selectedItag}&type=${currentType}&title=${encodeURIComponent(safeTitle)}`;
-                    document.querySelector('#resultArea a.primary-btn').href = updatedLink;
-                };
-            }, 100);
-        } else {
-            alert('Video details found but no download formats available.');
-        }
+        // Since we don't have detailed metadata from Cobalt easily without backend scraping,
+        // We show a generic "Download Ready" card.
 
         resultArea.innerHTML = `
             <div style="text-align: center; margin-top: 2rem; color: #fff;">
                 <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">${data.title}</h3>
-                <img src="${data.thumbnail}" alt="Thumbnail" style="width: 200px; border-radius: 10px; margin-bottom: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-                <p style="color: #94a3b8; margin-bottom: 1rem;">Platform: <span style="color: #a855f7; font-weight: bold;">${data.platform}</span></p>
-                <a href="${downloadLink}" target="_blank" class="primary-btn" style="display: inline-block; width: auto; padding: 0.8rem 2rem; text-decoration: none;">Download Now</a>
+                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-circle-check" style="font-size: 3rem; color: #4ade80; margin-bottom: 10px;"></i>
+                    <p>Media found successfully via public cloud.</p>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    ${data.formats.map(f => `
+                        <a href="${f.url}" target="_blank" class="primary-btn" style="display: inline-block; width: auto; padding: 0.8rem 1.5rem; text-decoration: none; font-size: 0.9rem;">
+                            <i class="fa-solid fa-download"></i> Download ${f.quality}
+                        </a>
+                    `).join('')}
+                </div>
             </div>
         `;
+
+        // Hide standard quality selector as we render buttons dynamically now
+        // Or keep it if we map it back. Buttons are easier for this direct mode.
     }
 
     // Support Modal Logic
