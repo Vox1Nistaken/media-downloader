@@ -89,6 +89,11 @@ app.get('/api/download', async (req, res) => {
     // Ensure Permissions on ffmpeg-static
     try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
 
+    // Check for cookies.txt
+    const cookiePath = path.join(__dirname, 'cookies.txt');
+    const hasCookies = fs.existsSync(cookiePath);
+    if (hasCookies) console.log('[V3 Engine] Using cookies.txt for auth');
+
     // 3. Construct arguments for yt-dlp
     const args = [
         url,
@@ -97,11 +102,17 @@ app.get('/api/download', async (req, res) => {
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
-        '--extractor-args', 'youtube:player_client=tv', // Switch to TV client (often less restricted on resolution)
+        '--extractor-args', 'youtube:player_client=tv',
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
         '--verbose'
     ];
+
+    if (hasCookies) {
+        args.push('--cookies', cookiePath);
+    }
+    // Note: If using OAuth2 cache, yt-dlp picks it up automatically from ~/.cache/yt-dlp
+    // We don't need to pass an arg for that, just ensure the process has access.
 
     console.log(`[V3 Engine] Executing with format: ${formatArg}`);
 
