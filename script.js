@@ -127,24 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let formatsHTML = '';
 
         // Add a few key buttons
-        // 1. Highest Quality Video
-        if (data.downloadUrl) {
-            formatsHTML += `<a href="${data.downloadUrl}" target="_blank" class="dl-btn">
-                <i class="fa-solid fa-video"></i> Download Video (Best)
-           </a>`;
-        } else if (videoFormats.length > 0) {
-            formatsHTML += `<a href="${videoFormats[0].url}" target="_blank" class="dl-btn">
-                <i class="fa-solid fa-video"></i> Download Video
-           </a>`;
-        }
+        // 1. Download Button (Proxy via Server)
+        // We use our new /api/download endpoint to ensure it works for everyone
+        const downloadLink = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}`;
 
-        // 2. Audio Option
-        const audioFormat = data.formats.find(f => !f.hasVideo && f.hasAudio) || data.formats.find(f => f.hasAudio);
-        if (audioFormat) {
-            formatsHTML += `<a href="${audioFormat.url}" target="_blank" class="dl-btn audio-btn">
-                <i class="fa-solid fa-music"></i> Download Audio
-           </a>`;
-        }
+        formatsHTML += `<a href="${downloadLink}" target="_blank" class="dl-btn">
+             <i class="fa-solid fa-video"></i> Download Video (Best)
+        </a>`;
+
+        /* 
+        // 2. Audio Option (Future update)
+        // For now let's focus on video working 100%
+        */
 
         const html = `
             <div class="result-card">
