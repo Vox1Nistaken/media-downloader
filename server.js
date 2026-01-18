@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const axios = require('axios'); // Ensure axios is required
 const { youtubedl, tiktokdl, twitterdl, savefrom } = require('@bochilteam/scraper');
 
 const app = express();
@@ -10,69 +9,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
-
-// Cobalt Mirror List (Backend-side)
-const COBALT_INSTANCES = [
-    'https://api.cobalt.tools',
-    'https://cobalt.154.53.56.156.nip.io',
-    'https://cobalt.dani.guru',
-    'https://cobalt.nao.2020.day',
-    'https://dl.khub.win',
-    'https://cobalt.q13.sbs',
-    'https://c.haber.lol',
-    'https://cobalt.kwiatekmiki.pl',
-    'https://api.cobalt.best',
-    'https://co.wuk.sh'
-];
-
-async function fallbackToCobalt(url) {
-    console.log('🔄 Attempting Cobalt Fallback (Backend)...');
-
-    // Shuffle
-    const instances = [...COBALT_INSTANCES].sort(() => 0.5 - Math.random());
-
-    for (const domain of instances) {
-        try {
-            const apiTarget = domain.endsWith('/') ? `${domain}api/json` : `${domain}/api/json`;
-            console.log(`Backend trying Cobalt: ${domain}`);
-
-            const response = await axios.post(apiTarget, {
-                url: url,
-                vCodec: 'h264',
-                vQuality: 'max',
-                aFormat: 'mp3',
-                filenamePattern: 'basic'
-            }, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                },
-                timeout: 8000 // 8s timeout
-            });
-
-            const data = response.data;
-            if (data && (data.url || data.picker || data.audio)) {
-                return data;
-            }
-        } catch (e) {
-            // silent fail per instance
-        }
-    }
-    throw new Error('All Cobalt backend instances failed');
-}
-
-function mapCobaltFormats(data) {
-    const formats = [];
-    if (data.url) formats.push({ quality: 'Best', url: data.url, type: 'video' });
-    if (data.picker) {
-        data.picker.forEach(p => {
-            formats.push({ quality: 'Select', url: p.url, type: p.type });
-        });
-    }
-    if (data.audio) formats.push({ quality: 'Audio', url: data.audio, type: 'audio' });
-    return formats;
-}
 
 function mapFormats(data) {
     const formats = [];
@@ -126,7 +62,7 @@ app.post('/api/info', async (req, res) => {
         console.log('Fetching info for:', url);
         let data;
 
-        // 1. Try Scraper First
+        // Try Scraper
         try {
             if (url.includes('youtube.com') || url.includes('youtu.be')) {
                 // Try youtubedl first
@@ -151,27 +87,10 @@ app.post('/api/info', async (req, res) => {
                 data = await savefrom(url);
             }
         } catch (scraperError) {
-            console.warn('Primary Scraper Failed:', scraperError.message);
+            console.warn('Scraper Failed:', scraperError.message);
         }
 
-        // 2. If Scraper Failed or Empty, Try Cobalt Fallback
-        if (!data || (!data.title && !data.url)) {
-            try {
-                const cobaltData = await fallbackToCobalt(url);
-                // Map Cobalt data to our format
-                return res.json({
-                    platform: 'Cobalt Fallback',
-                    title: 'Media Download', // Cobalt simplified metadata
-                    thumbnail: 'https://placehold.co/600x400?text=Ready',
-                    formats: mapCobaltFormats(cobaltData)
-                });
-            } catch (cobaltError) {
-                console.error('Cobalt Fallback Failed:', cobaltError.message);
-                if (!data) throw new Error('Both Scraper and Fallback systems failed.');
-            }
-        }
-
-        if (!data) throw new Error('No data returned from scraper');
+        if (!data) throw new Error('Could not fetch video data. Please check the URL.');
 
         return res.json({
             platform: 'Scraper',
@@ -193,7 +112,6 @@ app.post('/api/info', async (req, res) => {
 app.get('/api/download', async (req, res) => {
     const { url, quality } = req.query;
     try {
-        // Re-scrape to get fresh link
         // Re-scrape to get fresh link
         if (url.includes('youtube')) {
             const data = await youtubedl(url);
