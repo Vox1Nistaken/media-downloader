@@ -56,7 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resultArea.classList.remove('hidden');
 
         const q = qualitySelect.value;
-        const qLabel = qualitySelect.options[qualitySelect.selectedIndex].text;
+        // FIX: The native <select> is gone. We read the text from our custom dropdown UI.
+        const qLabel = document.getElementById('selectedQualityText').textContent;
 
         // Build Download Logic
         const dlUrl = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}&quality=${q}&title=${encodeURIComponent(data.title)}`;
