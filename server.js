@@ -178,8 +178,21 @@ app.post('/api/info', async (req, res) => {
             '--prefer-free-formats',
             '--geo-bypass',
             '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            url
         ];
+
+        // Check for cookies (Local or Render Secret)
+        const localCookies = path.join(__dirname, 'cookies.txt');
+        const renderCookies = '/etc/secrets/cookies.txt';
+
+        if (fs.existsSync(localCookies)) {
+            console.log('Using local cookies.txt');
+            args.push('--cookies', localCookies);
+        } else if (fs.existsSync(renderCookies)) {
+            console.log('Using Render secret cookies.txt');
+            args.push('--cookies', renderCookies);
+        }
+
+        args.push(url);
 
         const outputJSON = await runYtDlp(args);
         const output = JSON.parse(outputJSON);
@@ -243,8 +256,18 @@ app.get('/api/download', async (req, res) => {
             '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             '--ffmpeg-location', ffmpegPath,
             '--output', path.join(tempDir, `download-${reqId}.%(ext)s`),
-            url
         ];
+
+        // Check for cookies
+        const localCookies = path.join(__dirname, 'cookies.txt');
+        const renderCookies = '/etc/secrets/cookies.txt';
+        if (fs.existsSync(localCookies)) {
+            args.push('--cookies', localCookies);
+        } else if (fs.existsSync(renderCookies)) {
+            args.push('--cookies', renderCookies);
+        }
+
+        args.push(url);
 
         // Format Selection Logic
         if (isAudio || itag === 'audio') {
