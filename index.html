@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Media Downloader - 4K Supported</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7535641195804295"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="background-globes">
+        <div class="globe globe-1"></div>
+        <div class="globe globe-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+                <span>Media<span class="highlight">X</span></span>
+            </div>
+            <nav>
+                <a href="#" class="active">Home</a>
+                <a href="how-it-works.html">How it Works</a>
+                <a href="#" class="support-btn"><i class="fa-solid fa-mug-hot"></i> Support Me</a>
+            </nav>
+        </header>
+
+        <main class="main-layout">
+            <!-- Left Sidebar Ad -->
+            <aside class="ad-sidebar left-ad">
+                <div class="ad-vertical">
+                    <div class="ad-vertical">
+                        <!-- Vertical Left Ad (160x600) -->
+                        <ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px"
+                            data-ad-client="ca-pub-7535641195804295" data-ad-slot="2640998755" data-ad-format="auto"
+                            data-full-width-responsive="true"></ins>
+                        <script>
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+            </aside>
+
+            <!-- Center Content -->
+            <div class="center-content">
+                <!-- Top Ad Banner Placeholder -->
+                <div class="ad-banner top-banner">
+                    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-7535641195804295"
+                        data-ad-slot="2640998755" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                    <script>
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
+
+                <section class="hero">
+                    <h1>Unlock the Entire Internet <span class="gradient-text">In 4K</span></h1>
+                    <p class="subtitle">Download videos and audio from YouTube, TikTok, Instagram, Facebook, and X
+                        (Twitter) in the
+                        highest quality available.</p>
+
+                    <div class="downloader-card">
+                        <div class="input-group">
+                            <i class="fa-solid fa-link input-icon"></i>
+                            <input type="text" id="urlInput" placeholder="Paste your video link here...">
+                            <button id="pasteBtn" title="Paste"><i class="fa-regular fa-clipboard"></i></button>
+                        </div>
+
+                        <div class="options-grid">
+                            <div class="option-group">
+                                <label>Format</label>
+                                <div class="toggle-switch">
+                                    <input type="radio" name="format" id="video" value="video" checked>
+                                    <label for="video">Video</label>
+                                    <input type="radio" name="format" id="audio" value="audio">
+                                    <label for="audio">Audio (MP3)</label>
+                                </div>
+                            </div>
+                            <div class="option-group" id="qualityGroup">
+                                <label>Quality</label>
+                                <select id="qualitySelect">
+                                    <option value="highest">Best Available (up to 4K)</option>
+                                    <option value="1080p">1080p Full HD</option>
+                                    <option value="720p">720p HD</option>
+                                    <option value="480p">480p</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button id="downloadBtn" class="primary-btn">
+                            <span class="btn-text">Analyze & Download</span>
+                            <span class="loader"></span>
+                        </button>
+
+                        <div id="resultArea" class="result-area hidden">
+                            <!-- Result content will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Bottom Ad Banner Placeholder -->
+                    <div class="ad-banner bottom-banner">
+                        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-7535641195804295"
+                            data-ad-slot="2640998755" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                        <script>
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+
+                    <div class="supported-platforms">
+                        <div class="platform-btn active" data-platform="youtube" title="YouTube">
+                            <i class="fa-brands fa-youtube"></i>
+                        </div>
+                        <div class="platform-btn" data-platform="tiktok" title="TikTok">
+                            <i class="fa-brands fa-tiktok"></i>
+                        </div>
+                        <div class="platform-btn" data-platform="instagram" title="Instagram">
+                            <i class="fa-brands fa-instagram"></i>
+                        </div>
+                        <div class="platform-btn" data-platform="facebook" title="Facebook">
+                            <i class="fa-brands fa-facebook"></i>
+                        </div>
+                        <div class="platform-btn" data-platform="twitter" title="Twitter / X">
+                            <i class="fa-brands fa-x-twitter"></i>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Sidebar Ad -->
+            <aside class="ad-sidebar right-ad">
+                <div class="ad-vertical">
+                    <div class="ad-vertical">
+                        <!-- Vertical Right Ad (160x600) -->
+                        <ins class="adsbygoogle" style="display:inline-block;width:160px;height:600px"
+                            data-ad-client="ca-pub-7535641195804295" data-ad-slot="2640998755" data-ad-format="auto"
+                            data-full-width-responsive="true"></ins>
+                        <script>
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+            </aside>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 MediaX Downloader. Premium Tool.</p>
+        </footer>
+    </div>
+
+    <!-- Support Modal -->
+    <div id="supportModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>☕ Support Development</h2>
+            <p>Help us keep the servers running and the code free!</p>
+
+            <div class="support-options">
+                <!-- Patreon -->
+                <a href="https://www.patreon.com/15430131/join" target="_blank" class="support-option-btn patreon-btn">
+                    <i class="fa-brands fa-patreon"></i> Become a Patron
+                </a>
+
+                <!-- Crypto (USDT) -->
+                <div class="crypto-box">
+                    <div class="crypto-header">
+                        <i class="fa-solid fa-wallet"></i> USDT (Tether)
+                    </div>
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <img src="assets/qrcode.jpg" alt="USDT QR Code"
+                            style="width: 150px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1);">
+                    </div>
+                    <div class="crypto-address-container">
+                        <input type="text" value="TBSoPT7MxnRsqW6p6MwvRAN1mGYTuUfxw" readonly id="btcAddress">
+                        <button id="copyBtcBtn" title="Copy Address"><i class="fa-regular fa-copy"></i></button>
+                    </div>
+                    <small>Network: TRON (TRC20) - Low Fee Global Payment</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

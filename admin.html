@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaX Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: #ccc;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .status-success {
+            color: #4ade80;
+        }
+
+        .status-failed {
+            color: #f87171;
+        }
+
+        .stat-box {
+            display: inline-block;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 1.5rem;
+            border-radius: 12px;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #a855f7;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-globes">
+        <div class="globe globe-1"></div>
+        <div class="globe globe-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-lock"></i>
+                <span>Admin<span class="highlight">Panel</span></span>
+            </div>
+            <nav>
+                <a href="index.html">Back to Downloader</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero" style="text-align: left;">
+                <h1>System <span class="gradient-text">Overview</span></h1>
+
+                <div class="admin-card">
+                    <div class="stat-box">
+                        <span class="stat-number" id="totalDownloads">0</span>
+                        <span>Total Downloads</span>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <h3 style="margin-bottom: 1.5rem;">Recent Activity</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTable">
+                            <tr>
+                                <td colspan="4">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('http://localhost:3000/api/stats');
+                const stats = await response.json();
+
+                document.getElementById('totalDownloads').innerText = stats.totalDownloads;
+
+                const tbody = document.getElementById('activityTable');
+                tbody.innerHTML = '';
+
+                stats.recentRequests.forEach(req => {
+                    const row = `
+                        <tr>
+                            <td>${new Date(req.timestamp).toLocaleTimeString()}</td>
+                            <td>${req.type.toUpperCase()}</td>
+                            <td title="${req.url}">${req.url}</td>
+                            <td class="${req.status === 'Success' ? 'status-success' : 'status-failed'}">${req.status}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (e) {
+                console.error("Failed to load stats", e);
+            }
+        }
+
+        loadStats();
+        setInterval(loadStats, 5000); // Refresh every 5s
+    </script>
+</body>
+
+</html>
