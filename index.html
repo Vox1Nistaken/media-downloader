@@ -27,6 +27,10 @@
             </div>
             <nav>
                 <a href="#" class="active">Downloader</a>
+                <!-- Support Button (Heart) -->
+                <a href="#" onclick="document.getElementById('supportModal').classList.add('show')" title="Support Me">
+                    <i class="fa-solid fa-heart" style="color: #ff0055;"></i>
+                </a>
             </nav>
         </header>
 
@@ -80,33 +84,6 @@
                 <!-- Injected via JS -->
             </div>
 
-            <!-- SUPPORT / DONATE SECTION (Directly on Main Page) -->
-            <div class="glass-card" style="margin-top: 30px; text-align: center;">
-                <h2 style="margin-bottom: 15px; font-size: 1.5rem;">☕ Support the Project</h2>
-                <div class="support-links">
-                    <a href="https://www.patreon.com/15430131/join" target="_blank" class="patreon-btn"
-                        style="display: inline-block; background: #FF424D; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-bottom: 15px;">
-                        <i class="fa-brands fa-patreon"></i> Join Patreon
-                    </a>
-
-                    <div class="crypto-box" style="margin-top: 10px;">
-                        <div style="margin-bottom: 5px; color: #ffd700;"><i class="fa-brands fa-bitcoin"></i> USDT
-                            (TRC20)</div>
-                        <div
-                            style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px;">
-                            <code id="walletAddr"
-                                style="font-size: 0.85rem; color: #00ff88; word-break: break-all;">TBSoPT7MxnRsqW6p6MwvRAN1mGYTuUfxw</code>
-                            <button
-                                onclick="navigator.clipboard.writeText(document.getElementById('walletAddr').innerText); alert('Copied!')"
-                                class="icon-btn"
-                                style="background: rgba(255,255,255,0.1); width: 30px; height: 30px; font-size: 0.9rem;">
-                                <i class="fa-regular fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- History -->
             <div id="historySection" class="history-section hidden">
                 <h3>Recent Downloads</h3>
@@ -119,7 +96,38 @@
         </footer>
     </div>
 
-    <!-- Modals Removed as requested -->
+    <!-- SUPPORT / DONATE MODAL -->
+    <div id="supportModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal"
+                onclick="document.getElementById('supportModal').classList.remove('show')">&times;</span>
+            <h2 style="margin-bottom: 5px;">☕ Support Me</h2>
+            <p style="color: #aaa; margin-bottom: 20px;">Help keep the servers alive!</p>
+
+            <div class="support-links">
+                <a href="https://www.patreon.com/15430131/join" target="_blank" class="patreon-btn"
+                    style="display: block; background: #FF424D; color: white; padding: 12px; border-radius: 12px; text-decoration: none; font-weight: bold; margin-bottom: 15px; transition: 0.2s;">
+                    <i class="fa-brands fa-patreon"></i> Join Patreon
+                </a>
+
+                <div class="crypto-box">
+                    <div style="margin-bottom: 8px; color: #ffd700; font-weight: bold;">
+                        <i class="fa-brands fa-bitcoin"></i> USDT (TRC20)
+                    </div>
+                    <div
+                        style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                        <code id="walletAddr"
+                            style="font-size: 0.8rem; color: #00ff88; word-break: break-all; flex: 1;">TBSoPT7MxnRsqW6p6MwvRAN1mGYTuUfxw</code>
+                        <button
+                            onclick="navigator.clipboard.writeText(document.getElementById('walletAddr').innerText); this.innerHTML='<i class=\'fa-solid fa-check\'></i>'"
+                            class="icon-btn" style="background: rgba(255,255,255,0.1); width: 35px; height: 35px;">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
