@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const instagramDl = require('instagram-url-direct');
+const { downloadTiktok } = require('@mrnima/tiktok-downloader');
+const { TwitterDL } = require('twitter-downloader');
 const ffmpegPath = require('ffmpeg-static');
 const path = require('path');
 const fs = require('fs');
@@ -66,12 +68,10 @@ function runYtDlp(args) {
         let stderr = '';
 
         process.stdout.on('data', (data) => {
-            console.log('yt-dlp out:', data.toString());
             stdout += data.toString();
         });
 
         process.stderr.on('data', (data) => {
-            console.error('yt-dlp err:', data.toString());
             stderr += data.toString();
         });
 
@@ -179,6 +179,78 @@ app.post('/api/info', async (req, res) => {
         else if (url.includes('instagram.com')) platform = 'Instagram';
         else if (url.includes('twitter.com') || url.includes('x.com')) platform = 'Twitter';
 
+        console.log(`Fetching info for ${platform}: ${url}`);
+
+        // Specialized Handlers
+        if (platform === 'TikTok') {
+            try {
+                const data = await downloadTiktok(url);
+                if (data && data.status && data.result) {
+                    const formats = [];
+                    const r = data.result;
+
+                    if (r.dl_link && r.dl_link.download_mp4_hd) {
+                        formats.push({ quality: 'HD Video', itag: 'tiktok_hd', container: 'mp4', url: r.dl_link.download_mp4_hd });
+                    }
+                    if (r.dl_link && r.dl_link.download_mp4_1) {
+                        formats.push({ quality: 'SD Video', itag: 'tiktok_sd', container: 'mp4', url: r.dl_link.download_mp4_1 });
+                    }
+                    if (r.dl_link && r.dl_link.download_mp3) {
+                        formats.push({ quality: 'Audio', itag: 'tiktok_audio', container: 'mp3', url: r.dl_link.download_mp3 });
+                    }
+
+                    if (formats.length > 0) {
+                        return res.json({
+                            platform: 'TikTok',
+                            title: r.title || 'TikTok Video',
+                            thumbnail: r.image,
+                            formats: formats
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('TikTok lib failed, falling back to yt-dlp:', e.message);
+            }
+        }
+
+        if (platform === 'Twitter') {
+            try {
+                const data = await TwitterDL(url);
+                if (data && data.status === 'success' && data.result) {
+                    const result = data.result;
+                    const formats = [];
+
+                    // Handle video
+                    if (result.media && result.media.length > 0) {
+                        result.media.forEach(m => {
+                            if (m.type === 'video' && m.videos) {
+                                m.videos.forEach(v => {
+                                    formats.push({
+                                        quality: v.quality || 'Unknown',
+                                        itag: 'twitter_direct', // We might need to handle specific quality selection better
+                                        container: 'mp4',
+                                        url: v.url
+                                    });
+                                });
+                            }
+                        });
+                    }
+
+                    if (formats.length > 0) {
+                        return res.json({
+                            platform: 'Twitter',
+                            title: result.description || 'Twitter Video',
+                            thumbnail: result.media[0]?.cover || result.media[0]?.image,
+                            formats: formats
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('Twitter lib failed, falling back to yt-dlp:', e.message);
+            }
+        }
+
+        // Standard logic (yt-dlp) for YouTube, FB, or fallback
         // Run yt-dlp
         // Specific args for robustness
         const args = [
@@ -256,12 +328,40 @@ app.get('/api/download', async (req, res) => {
 
         logRequest(url, req.query.type, 'Processing');
 
+        // Specialized Redirects
         if (itag === 'ig') {
             const result = await instagramDl(url);
             if (result.url_list && result.url_list.length > 0) return res.redirect(result.url_list[0]);
             return res.status(404).send('Media not found');
         }
 
+        // TikTok Redirect
+        if (itag && itag.startsWith('tiktok_')) {
+            const data = await downloadTiktok(url);
+            if (data && data.status && data.result && data.result.dl_link) {
+                if (itag === 'tiktok_audio' && data.result.dl_link.download_mp3) return res.redirect(data.result.dl_link.download_mp3);
+                if (itag === 'tiktok_hd' && data.result.dl_link.download_mp4_hd) return res.redirect(data.result.dl_link.download_mp4_hd);
+                if (data.result.dl_link.download_mp4_1) return res.redirect(data.result.dl_link.download_mp4_1);
+            }
+        }
+
+        // Twitter Redirect
+        if (itag === 'twitter_direct') {
+            // For simplicity, just re-fetch to get fresh link or use yt-dlp if simpler. 
+            // Note: Twitter links expire. 
+            const data = await TwitterDL(url);
+            if (data && data.status === 'success' && data.result && data.result.media) {
+                // Try to find the best quality or match
+                const video = data.result.media.find(m => m.type === 'video');
+                if (video && video.videos && video.videos.length > 0) {
+                    // Sort by bitrate descending
+                    video.videos.sort((a, b) => b.bitrate - a.bitrate);
+                    return res.redirect(video.videos[0].url);
+                }
+            }
+        }
+
+        // Fallback to yt-dlp download mechanism
         // Common Args
         const args = [
             '--no-check-certificates',
@@ -349,5 +449,5 @@ app.get('/api/download', async (req, res) => {
 app.get('/api/stats', (req, res) => res.json(stats));
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
-    console.log('Server Updated: v1.1 (Fixes applied)');
+    console.log('Server Updated: v2.0 (Specialized Libs)');
 });
