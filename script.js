@@ -127,12 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let formatsHTML = '';
 
         // Add a few key buttons
-        // 1. Download Button (Proxy via Server)
-        // We use our new /api/download endpoint to ensure it works for everyone
-        const downloadLink = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}`;
+        // 1. Download Button (High Quality Proxy)
+        const qualitySelect = document.getElementById('qualitySelect');
+        const selectedQuality = qualitySelect ? qualitySelect.value : 'highest';
+        const safeTitle = encodeURIComponent(data.title || 'video');
+
+        const downloadLink = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}&quality=${selectedQuality}&title=${safeTitle}`;
 
         formatsHTML += `<a href="${downloadLink}" target="_blank" class="dl-btn">
-             <i class="fa-solid fa-video"></i> Download Video (Best)
+             <i class="fa-solid fa-video"></i> Download Video (${selectedQuality === 'highest' ? 'Best' : selectedQuality})
         </a>`;
 
         /* 

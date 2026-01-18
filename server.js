@@ -60,55 +60,74 @@ app.post('/api/info', async (req, res) => {
     }
 });
 
-// API: Proxy Download (Streams directly to user)
+// API: High Quality Download (Download to Temp -> Merge -> Send -> Delete)
 const { spawn } = require('child_process');
+const fs = require('fs');
+
+// Ensure temp directory exists
+const tempDir = path.join(__dirname, 'temp');
+if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
 app.get('/api/download', async (req, res) => {
-    const { url } = req.query;
+    const { url, quality, title } = req.query;
     if (!url) return res.status(400).send('URL required');
 
-    console.log('Starting stream download for:', url);
+    console.log(`Starting HQ Download: ${url} [${quality}]`);
+
+    // Determine Format
+    // Note: 'bestvideo+bestaudio' requires ffmpeg (installed on VPS)
+    let formatArg = 'bestvideo+bestaudio/best'; // Default to best available (often 4K/1080p)
+
+    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]';
+    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
+    else if (quality === 'audio') formatArg = 'bestaudio/best';
+
+    // Generate Safe Filename
+    const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+    const tempFilename = `${Date.now()}_${safeTitle}.mp4`;
+    const tempPath = path.join(tempDir, tempFilename);
 
     try {
-        res.header('Content-Disposition', 'attachment; filename="video.mp4"');
-        res.header('Content-Type', 'video/mp4');
-
-        // Use npx to locate the local yt-dlp binary from node_modules
-        // We use 'best[ext=mp4]' to avoid complex merging that might fail over pipe
+        // Spawn yt-dlp to download to local file
         const args = [
             url,
-            '-o', '-',
-            '-f', 'best[ext=mp4]/best',
+            '-f', formatArg,
+            '--merge-output-format', 'mp4',
+            '-o', tempPath,
             '--no-playlist',
             '--no-check-certificates',
-            '--prefer-free-formats',
-            '--extractor-args', 'youtube:player_client=android', // Spoof Android app to bypass DC blocks
+            '--extractor-args', 'youtube:player_client=android',
             '--force-ipv4'
         ];
 
-        // spawn is robust for streaming
         const ytProcess = spawn('yt-dlp', args);
 
-        ytProcess.on('error', (err) => {
-            console.error('Failed to start yt-dlp process:', err);
-            if (!res.headersSent) res.status(500).send('Server Process Error');
-        });
-
-        ytProcess.stdout.pipe(res);
-
-        ytProcess.stderr.on('data', (data) => {
-            console.error('yt-dlp stderr:', data.toString());
-        });
+        // Logging
+        ytProcess.stderr.on('data', (data) => console.log(`yt-dlp prog: ${data}`));
 
         ytProcess.on('close', (code) => {
             if (code !== 0) {
-                console.error(`yt-dlp process exited with code ${code}`);
-                if (!res.headersSent) res.status(500).send('Download Server Error');
+                console.error(`Download failed with code ${code}`);
+                return res.status(500).send('Download Failed on Server');
             }
-        });
 
-        req.on('close', () => {
-            ytProcess.kill();
+            // Check if file exists
+            if (!fs.existsSync(tempPath)) {
+                return res.status(500).send('File not created');
+            }
+
+            // Send File to User
+            const userFilename = `${safeTitle}.mp4`;
+            res.download(tempPath, userFilename, (err) => {
+                if (err) console.error('Send Error:', err);
+
+                // Delete file after sending (or error)
+                fs.unlink(tempPath, (unlinkErr) => {
+                    if (unlinkErr) console.error('Cleanup Error:', unlinkErr);
+                    else console.log('Temp file cleaned up:', tempPath);
+                });
+            });
         });
 
     } catch (error) {
