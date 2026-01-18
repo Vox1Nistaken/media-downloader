@@ -126,24 +126,17 @@ app.get('/api/download', async (req, res) => {
 
     console.log(`[V4 Download] ${url} [${quality}] (Auth: ${hasCookies})`);
 
-    // V5: STRICT MP4 & 1080p/2K
-    // User requested: "4k boşver, 1080p/2k olsun, MP4 olsun"
-    // Strategy: Prefer native MP4 (h264/aac). If not available, download best and merge to MP4.
-    let formatArg = 'bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[ext=mp4]/best';
+    // V5.1: ROBUST QUALITY SORTING (Fix for "144p stuck" issue)
+    // The previous 'android' spoofing constrained us to legacy streams (144p).
+    // The previous format selection fell back to '/best' (video) even for audio.
 
-    if (quality === 'highest') formatArg = 'bestvideo[height<=1440]+bestaudio/bestvideo+bestaudio/best'; // Cap at 2K (1440p)
-    else if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best';
-    else if (quality === 'audio') formatArg = 'bestaudio/best';
-
-    // 2. Build Args
+    // We clear 'formatArg' defaults and use '-S' (Sorting) or specific '-f' logic.
     const tempFilename = `${Date.now()}_${safeTitle}.mp4`; // Ext is .mp4 now
     const tempPath = path.join(tempDir, tempFilename);
 
     const args = [
         url,
-        '-f', formatArg,
-        '--merge-output-format', 'mp4', // FORCE MP4 CONTAINER
+        '--merge-output-format', 'mp4',
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
@@ -152,12 +145,35 @@ app.get('/api/download', async (req, res) => {
         '--verbose'
     ];
 
-    // V5 Client Strategy: Android (Most compatible for 1080p without Strict Auth)
-    args.push('--extractor-args', 'youtube:player_client=android');
+    // QUALITY LOGIC
+    if (quality === 'audio') {
+        // STRICT AUDIO: No fallback to video.
+        args.push('-f', 'bestaudio[ext=m4a]/bestaudio');
+    } else {
+        // VIDEO LOGIC: Use Sorting (-S) instead of strict format strings.
+        // This tells yt-dlp: "Give me the best video closer to this res, standard codec."
+        // res:1080 means "Best resolution, capped at 1080" roughly, but we force limits.
 
-    // Optional Cookies (Use if available, but don't crash if not)
+        let resLimit = 'res:1080';
+        if (quality === 'highest') resLimit = 'res:1440'; // 2K
+        if (quality === '720p') resLimit = 'res:720';
+
+        // "vcodec:h264" ensures MP4 compatibility. "+acodec:m4a" ensures good audio.
+        args.push('-S', `${resLimit},vcodec:h264,acodec:m4a`);
+
+        // Also strictly cap height to avoid mistakes if sorting fails
+        // args.push('-f', `bv*[height<=${quality === 'highest' ? 1440 : (parseInt(quality)||1080)}]+ba/b[ext=mp4]/b`);
+    }
+
+    // CLIENT STRATEGY: DEFAULT (WEB)
+    // We removed 'android' forcing because it was causing 144p caps on DC IPs.
+    // We only use 'tv' if auth is present.
     if (hasCookies) {
         args.push('--cookies', COOKIE_PATH);
+        args.push('--extractor-args', 'youtube:player_client=tv'); // Use TV if we have power (Cookies)
+    } else {
+        // GUESTS: Use default Web client. It's less restricted on resolution than Android-Guest.
+        // No extra args needed.
     }
 
     // Resilience Flags
