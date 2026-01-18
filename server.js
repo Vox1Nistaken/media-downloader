@@ -71,9 +71,16 @@ app.post('/api/info', async (req, res) => {
         const hasCookies = fs.existsSync(COOKIE_PATH);
         const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
 
+        // V6.1: GLOBAL COOKIE SUPPORT (Fix for Instagram/Twitter Login Errors)
+        // We pass the cookie file for ALL sites if it exists. 
+        // This allows 'cookies.txt' to contain Netscape cookies for IG, X, generic sites, etc.
+        if (hasCookies) {
+            args.cookies = COOKIE_PATH;
+        }
+
         if (isYoutube) {
             if (hasCookies) {
-                args.cookies = COOKIE_PATH;
+                // args.cookies is already set above
                 args.extractorArgs = 'youtube:player_client=tv';
             } else {
                 args.extractorArgs = 'youtube:player_client=android'; // For info fetching, Android is still okay usually
