@@ -74,14 +74,14 @@ app.get('/api/download', async (req, res) => {
 
     console.log(`Starting HQ Download: ${url} [${quality}]`);
 
-    // Determine Format
-    // Note: 'bestvideo+bestaudio' requires ffmpeg (installed on VPS)
-    let formatArg = 'bestvideo+bestaudio/best'; // Default to best available (often 4K/1080p)
+    // Determine Format - FORCE HQ, Remove fallback to 'best' to prevent 144p
+    // If ffmpeg is missing, this will fail, which is better than silence.
+    let formatArg = 'bestvideo+bestaudio'; // Strict merge
 
-    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]';
-    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
-    else if (quality === 'audio') formatArg = 'bestaudio/best';
+    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio';
+    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio';
+    else if (quality === 'audio') formatArg = 'bestaudio';
 
     // Generate Safe Filename
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
@@ -89,7 +89,9 @@ app.get('/api/download', async (req, res) => {
     const tempPath = path.join(tempDir, tempFilename);
 
     try {
-        // Spawn yt-dlp to download to local file
+        console.log(`Using strict format: ${formatArg}`);
+
+        // Spawn yt-dlp - Rely on PATH for ffmpeg (safer than hardcoded path if installed via apt)
         const args = [
             url,
             '-f', formatArg,
@@ -97,11 +99,9 @@ app.get('/api/download', async (req, res) => {
             '-o', tempPath,
             '--no-playlist',
             '--no-check-certificates',
-            '--no-check-certificates',
             '--extractor-args', 'youtube:player_client=android',
             '--force-ipv4',
-            '--ffmpeg-location', '/usr/bin/ffmpeg', // Explicitly use installed ffmpeg
-            '--verbose' // Help debug failures
+            '--verbose'
         ];
 
         const ytProcess = spawn('yt-dlp', args);
