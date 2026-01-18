@@ -7,7 +7,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -56,10 +56,12 @@ function runYtDlp(args) {
         let stderr = '';
 
         process.stdout.on('data', (data) => {
+            console.log('yt-dlp out:', data.toString());
             stdout += data.toString();
         });
 
         process.stderr.on('data', (data) => {
+            console.error('yt-dlp err:', data.toString());
             stderr += data.toString();
         });
 
