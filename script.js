@@ -132,21 +132,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 a.remove();
 
                 btn.innerHTML = '✅ Complete';
+                // Stop Animation
+                clearInterval(progressInterval);
+
                 setTimeout(() => {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-download"></i> Download Again';
+                    btn.innerHTML = `<i class="fa-solid fa-download"></i> <span data-i18n="btn_download">Download Again</span>`;
+
+                    // Re-apply translations if needed to ensure correct language
+                    const t = translations[currentLang] || translations['en'];
+                    const span = btn.querySelector('[data-i18n]');
+                    if (span) span.textContent = t.btn_download;
+
                 }, 3000);
 
             } catch (e) {
                 console.error(e);
+                clearInterval(progressInterval);
+                const t = translations[currentLang] || translations['en'];
                 status.textContent = 'Server Error: Check logs or try another video.';
                 status.className = 'status-msg error';
                 status.classList.remove('hidden');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> Retry';
+                btn.innerHTML = `<i class="fa-solid fa-download"></i> <span data-i18n="btn_retry">${t.btn_retry}</span>`;
             }
         };
+
+        // --- PROGRESS ANIMATION ---
+        let progressInterval;
+        const btn = document.getElementById('realDownloadBtn');
+        const stages = [
+            '⏳ Connecting...',
+            '⬇️ Downloading from Source...',
+            '🔨 Merging Audio & Video...',
+            '📦 Finalizing File...',
+            '🚀 Sending to You...'
+        ];
+        let stageIndex = 0;
+
+        // Start cycling messages if it takes long
+        progressInterval = setInterval(() => {
+            stageIndex = (stageIndex + 1) % stages.length;
+            // Only update if still disabled (processing)
+            if (btn.disabled) {
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${stages[stageIndex]}`;
+            }
+        }, 4000); // Change every 4 seconds
     }
+}
 
     // --- UTILITY FUNCTIONS ---
     function setLoading(bool) {
