@@ -485,9 +485,49 @@ nav a.active {
 
 .result-info h3 {
     font-size: 1.2rem;
-    margin-bottom: 8px;
-    line-height: 1.4;
+    margin-right: auto;
+}
+
+header nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+header nav a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: 0.3s;
+}
+
+header nav a:hover {
     color: white;
+    transform: scale(1.1);
+}
+
+/* --- LANGUAGE MODAL GRID --- */
+.lang-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.lang-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.lang-option:hover {
+    background: rgba(0, 198, 255, 0.2);
+    border-color: #00C6FF;
+    transform: scale(1.05);
 }
 
 /* --- MODALS --- */
@@ -531,6 +571,12 @@ nav a.active {
 
 .close-modal:hover {
     color: white;
+}
+
+/* RTL Support for Arabic */
+body.rtl {
+    direction: rtl;
+    text-align: right;
 }
 
 .crypto-box {

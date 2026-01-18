@@ -184,16 +184,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- 4. LANGUAGE LOGIC ---
 let currentLang = 'en';
 
-window.toggleLangMenu = function () {
-    document.getElementById('langMenu').classList.toggle('show');
-};
+// (Old toggle logic removed, modal handled via HTML/CSS)
 
 window.changeLanguage = function (lang) {
     currentLang = lang;
     const t = translations[lang] || translations['en'];
 
     // 1. Update Buttons/Text
-    document.getElementById('currentLang').textContent = lang.toUpperCase();
+    // (Header text update removed as button is just an icon now)
 
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -232,7 +230,8 @@ window.changeLanguage = function (lang) {
         document.body.classList.remove('rtl');
     }
 
-    document.getElementById('langMenu').classList.remove('show');
+    // 4. Close Modal
+    document.getElementById('langModal').classList.remove('show');
     localStorage.setItem('mediax_lang', lang);
 };
 
@@ -253,9 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hide menus on click outside
     window.addEventListener('click', (e) => {
-        if (!e.target.closest('.lang-dropdown')) {
-            document.getElementById('langMenu').classList.remove('show');
-        }
+        // Modals handle their own close via X or background (css/html)
+        // We just ensure no errant clicks
     });
 });
 

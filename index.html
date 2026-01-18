@@ -27,24 +27,10 @@
                 <i class="fa-solid fa-bolt"></i> Media<span class="highlight">X</span>
             </div>
             <nav class="nav-right">
-                <!-- Language Selector -->
-                <div class="lang-dropdown" id="langDropdown">
-                    <button class="lang-btn" onclick="toggleLangMenu()">
-                        <i class="fa-solid fa-globe"></i> <span id="currentLang">EN</span>
-                    </button>
-                    <div class="lang-menu" id="langMenu">
-                        <div onclick="changeLanguage('en')">🇺🇸 English</div>
-                        <div onclick="changeLanguage('tr')">🇹🇷 Türkçe</div>
-                        <div onclick="changeLanguage('de')">🇩🇪 Deutsch</div>
-                        <div onclick="changeLanguage('fr')">🇫🇷 Français</div>
-                        <div onclick="changeLanguage('es')">🇪🇸 Español</div>
-                        <div onclick="changeLanguage('ru')">🇷🇺 Русский</div>
-                        <div onclick="changeLanguage('zh')">🇨🇳 中文</div>
-                        <div onclick="changeLanguage('jp')">🇯🇵 日本語</div>
-                        <div onclick="changeLanguage('kr')">🇰🇷 한국어</div>
-                        <div onclick="changeLanguage('ar')">🇸🇦 العربية</div>
-                    </div>
-                </div>
+                <!-- Language Trigger (Globe) -->
+                <a href="#" onclick="document.getElementById('langModal').classList.add('show')" title="Language">
+                    <i class="fa-solid fa-globe"></i>
+                </a>
 
                 <a href="#" class="active">Downloader</a>
                 <!-- Support Button (Heart) -->
@@ -135,6 +121,27 @@
         <footer>
             <p data-i18n="footer">Running V7 Phoenix Engine • Secure & Private</p>
         </footer>
+    </div>
+
+    <!-- LANGUAGE MODAL -->
+    <div id="langModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal"
+                onclick="document.getElementById('langModal').classList.remove('show')">&times;</span>
+            <h2 style="margin-bottom: 20px;">🌍 Select Language</h2>
+            <div class="lang-grid">
+                <div class="lang-option" onclick="changeLanguage('en')">🇺🇸 English</div>
+                <div class="lang-option" onclick="changeLanguage('tr')">🇹🇷 Türkçe</div>
+                <div class="lang-option" onclick="changeLanguage('de')">🇩🇪 Deutsch</div>
+                <div class="lang-option" onclick="changeLanguage('fr')">🇫🇷 Français</div>
+                <div class="lang-option" onclick="changeLanguage('es')">🇪🇸 Español</div>
+                <div class="lang-option" onclick="changeLanguage('ru')">🇷🇺 Русский</div>
+                <div class="lang-option" onclick="changeLanguage('zh')">🇨🇳 中文</div>
+                <div class="lang-option" onclick="changeLanguage('jp')">🇯🇵 日本語</div>
+                <div class="lang-option" onclick="changeLanguage('kr')">🇰🇷 한국어</div>
+                <div class="lang-option" onclick="changeLanguage('ar')">🇸🇦 العربية</div>
+            </div>
+        </div>
     </div>
 
     <!-- SUPPORT / DONATE MODAL -->
