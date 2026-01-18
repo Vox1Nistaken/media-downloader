@@ -106,18 +106,26 @@ app.get('/api/download', async (req, res) => {
 
         const ytProcess = spawn('yt-dlp', args);
 
-        // Logging
-        ytProcess.stderr.on('data', (data) => console.log(`yt-dlp prog: ${data}`));
+        // Logging & Error Capture
+        let errorLog = '';
+        ytProcess.stderr.on('data', (data) => {
+            const msg = data.toString();
+            console.log(`yt-dlp prog: ${msg}`);
+            errorLog += msg;
+        });
 
         ytProcess.on('close', (code) => {
             if (code !== 0) {
                 console.error(`Download failed with code ${code}`);
-                return res.status(500).send('Download Failed on Server');
+                // Send the specific errorlog to the user to help debug
+                // Limit log size to avoid huge headers/body
+                const cleanLog = errorLog.slice(-500).replace(/\n/g, ' ');
+                return res.status(500).send(`Server Error: ${cleanLog}`);
             }
 
             // Check if file exists
             if (!fs.existsSync(tempPath)) {
-                return res.status(500).send('File not created');
+                return res.status(500).send('File not created. Check logs.');
             }
 
             // Send File to User
