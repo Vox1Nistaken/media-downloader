@@ -103,96 +103,23 @@ document.addEventListener('DOMContentLoaded', () => {
         startLoading();
 
         try {
-            // Shuffle instances for load balancing
-            const shuffledInstances = [...cobaltInstances].sort(() => 0.5 - Math.random());
-            let success = false;
-            let finalData = null;
-            let errors = [];
+            const response = await fetch('/api/info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
 
-            // Try instances one by one
-            for (const instance of shuffledInstances) {
-                try {
-                    console.log(`Trying: ${instance.url}`);
-                    const apiTarget = `${instance.url}${instance.endpoint}`;
-
-                    const response = await fetch(apiTarget, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            url: url,
-                            vCodec: 'h264',
-                            vQuality: 'max',
-                            aFormat: 'mp3',
-                            filenamePattern: 'basic'
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data && (data.url || data.picker || data.audio)) {
-                        console.log('Success via:', instance.url);
-                        success = true;
-
-                        // Normalize data structure for UI
-                        finalData = {
-                            platform: 'Social Media (Detected)',
-                            title: 'Media Download',
-                            thumbnail: 'https://placehold.co/600x400/000000/FFF?text=Media+Found', // Default placebo
-                            formats: []
-                        };
-
-                        if (data.picker) {
-                            finalData.formats = data.picker.map(p => ({
-                                quality: p.type === 'video' ? 'Best Video' : 'Audio',
-                                itag: 'cobalt',
-                                container: 'mp4',
-                                url: p.url,
-                                type: p.type
-                            }));
-                        } else if (data.url) {
-                            finalData.formats.push({
-                                quality: 'Best Available',
-                                itag: 'cobalt',
-                                container: 'mp4',
-                                url: data.url,
-                                type: 'video'
-                            });
-                        } else if (data.audio) {
-                            finalData.formats.push({
-                                quality: 'Audio Only',
-                                itag: 'cobalt_audio',
-                                container: 'mp3',
-                                url: data.audio,
-                                type: 'audio'
-                            });
-                        }
-
-                        // Try to fetch real title/thumb if available (rare in Cobalt simplified, but sometimes present)
-                        // Cobalt often doesn't return metadata unless requested differently, 
-                        // but let's stick to simple download first.
-                        break; // Stop loop on success
-                    } else {
-                        throw new Error(`Invalid response key from ${instance.url}`);
-                    }
-
-                } catch (e) {
-                    console.warn(`Failed ${instance.url}:`, e);
-                    errors.push(e.message);
-                }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || errorData.details || 'API Request Failed';
+                throw new Error(errorMessage);
             }
 
-            if (!success || !finalData) {
-                throw new Error('All download servers failed. Please try again later. Details: ' + errors.slice(0, 3).join(', '));
-            }
-
-            // Show Result
-            showResult(finalData);
+            const data = await response.json();
+            showResult(data);
 
         } catch (error) {
-            console.error('Download Logic Error:', error);
+            console.error('Fetch Error Details:', error);
             alert('Error: ' + error.message);
         } finally {
             stopLoading();
