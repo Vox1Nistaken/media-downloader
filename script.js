@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // V6.4: INSTAGRAM BLOCK (User Request)
         if (url.includes('instagram.com')) {
-            showError('⚠️ Instagram hizmeti, Instagram talebi üzerine kaldırılmıştır.');
+            showError('⚠️ Service disabled upon request by Meta.');
             return;
         }
 
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         igIcon.style.cursor = 'pointer'; // Make it look clickable
         igIcon.onclick = () => {
             const statusMsg = document.getElementById('statusMsg');
-            statusMsg.textContent = '⚠️ Instagram hizmeti, Instagram talebi üzerine kaldırılmıştır.';
+            statusMsg.textContent = '⚠️ Service disabled upon request by Meta.';
             statusMsg.className = 'status-msg error';
             statusMsg.classList.remove('hidden');
 

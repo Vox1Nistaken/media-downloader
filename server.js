@@ -158,7 +158,10 @@ app.get('/api/download', async (req, res) => {
         '--no-check-certificates',
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
-        '--verbose'
+        '--verbose',
+        // V6.5 PERFORMANCE BOOST
+        '-N', '8', // Download 8 fragments in parallel (Accelerates speed significantly)
+        '--buffer-size', '16M' // Larger buffer to prevent disk thrashing
     ];
 
     // QUALITY LOGIC
