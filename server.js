@@ -70,15 +70,14 @@ app.get('/api/download', async (req, res) => {
 
     console.log(`[Download] Starting V3 Task: ${url} [${quality}]`);
 
-    // 1. Determine Format Strategy
-    // We use MKV container to allow direct stream copy of VP9/AV1 (4K) without transcoding errors.
-    // 'bestvideo+bestaudio' ensures we get the source quality components.
+    // 1. Determine Format Strategy - STRICT MODE (No Fallbacks)
+    // We remove '/best' from specific qualities. If it fails, we want to know WHY.
     let formatArg = 'bestvideo+bestaudio/best';
 
-    // Strict resolution filters
-    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best';
-    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best';
+    // Strict resolution filters - If these fail, we want an error, not 144p.
+    if (quality === '1080p') formatArg = 'bestvideo[height=1080]+bestaudio';
+    else if (quality === '720p') formatArg = 'bestvideo[height=720]+bestaudio';
+    else if (quality === '480p') formatArg = 'bestvideo[height=480]+bestaudio';
     else if (quality === 'audio') formatArg = 'bestaudio/best';
 
     // 2. Output Path
@@ -86,8 +85,10 @@ app.get('/api/download', async (req, res) => {
     const tempFilename = `${Date.now()}_${safeTitle}.mkv`;
     const tempPath = path.join(tempDir, tempFilename);
 
+    // Ensure Permissions on ffmpeg-static (Common issue on some VPS)
+    try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
+
     // 3. Construct arguments for yt-dlp
-    // We explicitly pass the static ffmpeg path.
     const args = [
         url,
         '-f', formatArg,
@@ -95,9 +96,9 @@ app.get('/api/download', async (req, res) => {
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
-        '--extractor-args', 'youtube:player_client=android',
+        '--extractor-args', 'youtube:player_client=ios', // Switch to iOS to bypass potential Android DC throttling
         '--force-ipv4',
-        '--ffmpeg-location', ffmpegPath, // <--- THE KEY FIX
+        '--ffmpeg-location', ffmpegPath,
         '--verbose'
     ];
 
