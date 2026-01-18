@@ -23,6 +23,16 @@ if (!fs.existsSync(tempDir)) {
 const isWin = process.platform === 'win32';
 const ytDlpPath = path.join(__dirname, isWin ? 'yt-dlp.exe' : 'yt-dlp');
 
+// Ensure ffmpeg is executable on Linux
+if (!isWin && fs.existsSync(ffmpegPath)) {
+    try {
+        fs.chmodSync(ffmpegPath, '755');
+        console.log('Set permissions for ffmpeg');
+    } catch (e) {
+        console.error('Error setting ffmpeg permissions:', e);
+    }
+}
+
 // Stats
 const stats = {
     totalDownloads: 0,
@@ -177,20 +187,24 @@ app.post('/api/info', async (req, res) => {
             '--no-warnings',
             '--prefer-free-formats',
             '--geo-bypass',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            '--extractor-args', 'youtube:player_client=ios',
         ];
 
-        // Check for cookies (Local or Render Secret)
+        // Cookies Disabled for now (causing IP mismatch issues)
+        /*
         const localCookies = path.join(__dirname, 'cookies.txt');
         const renderCookies = '/etc/secrets/cookies.txt';
 
         if (fs.existsSync(localCookies)) {
-            console.log('Using local cookies.txt');
+            console.log('✅ Found local cookies.txt');
             args.push('--cookies', localCookies);
         } else if (fs.existsSync(renderCookies)) {
-            console.log('Using Render secret cookies.txt');
+            console.log('✅ Found Render secret cookies.txt');
             args.push('--cookies', renderCookies);
+        } else {
+            console.warn('❌ NO COOKIES FOUND! Request might fail.');
         }
+        */
 
         args.push(url);
 
@@ -253,12 +267,13 @@ app.get('/api/download', async (req, res) => {
             '--no-check-certificates',
             '--no-warnings',
             '--geo-bypass',
-            '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            '--extractor-args', 'youtube:player_client=ios',
             '--ffmpeg-location', ffmpegPath,
             '--output', path.join(tempDir, `download-${reqId}.%(ext)s`),
         ];
 
-        // Check for cookies
+        // Cookies Disabled
+        /*
         const localCookies = path.join(__dirname, 'cookies.txt');
         const renderCookies = '/etc/secrets/cookies.txt';
         if (fs.existsSync(localCookies)) {
@@ -266,6 +281,7 @@ app.get('/api/download', async (req, res) => {
         } else if (fs.existsSync(renderCookies)) {
             args.push('--cookies', renderCookies);
         }
+        */
 
         args.push(url);
 
@@ -319,7 +335,8 @@ app.get('/api/download', async (req, res) => {
                 logRequest(url, req.query.type, 'Success');
             });
         } else {
-            // Fallback: Sometimes merger fails and leaves .mkv or .webm, try finding any file with that ID
+            // Log directory contents to see what happened
+            console.error(`Download failed. Temp dir contents:`, fs.readdirSync(tempDir));
             throw new Error('Output file not found. Download might have failed or file format issue.');
         }
 
