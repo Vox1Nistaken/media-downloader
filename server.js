@@ -71,21 +71,22 @@ app.get('/api/download', async (req, res) => {
     console.log(`[Download] Starting V3 Task: ${url} [${quality}]`);
 
     // 1. Determine Format Strategy - STRICT MODE (No Fallbacks)
-    // We remove '/best' from specific qualities. If it fails, we want to know WHY.
-    let formatArg = 'bestvideo+bestaudio/best';
+    // ChatGPT explanation was correct: We need 'bv*+ba' (Best Video + Best Audio) to get 4K/1080p.
+    // We intentionally removed failure fallbacks to ensure we don't get 144p silently.
+    let formatArg = 'bv*+ba/b';
 
-    // Strict resolution filters - If these fail, we want an error, not 144p.
-    if (quality === '1080p') formatArg = 'bestvideo[height=1080]+bestaudio';
-    else if (quality === '720p') formatArg = 'bestvideo[height=720]+bestaudio';
-    else if (quality === '480p') formatArg = 'bestvideo[height=480]+bestaudio';
-    else if (quality === 'audio') formatArg = 'bestaudio/best';
+    // Strict resolution filters
+    if (quality === '1080p') formatArg = 'bv*[height=1080]+ba';
+    else if (quality === '720p') formatArg = 'bv*[height=720]+ba';
+    else if (quality === '480p') formatArg = 'bv*[height=480]+ba';
+    else if (quality === 'audio') formatArg = 'ba/b';
 
     // 2. Output Path
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
     const tempFilename = `${Date.now()}_${safeTitle}.mkv`;
     const tempPath = path.join(tempDir, tempFilename);
 
-    // Ensure Permissions on ffmpeg-static (Common issue on some VPS)
+    // Ensure Permissions on ffmpeg-static
     try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
 
     // 3. Construct arguments for yt-dlp
@@ -96,7 +97,7 @@ app.get('/api/download', async (req, res) => {
         '-o', tempPath,
         '--no-playlist',
         '--no-check-certificates',
-        '--extractor-args', 'youtube:player_client=ios', // Switch to iOS to bypass potential Android DC throttling
+        '--extractor-args', 'youtube:player_client=ios',
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
         '--verbose'
@@ -107,19 +108,19 @@ app.get('/api/download', async (req, res) => {
     try {
         const process = spawn('yt-dlp', args);
 
-        // Capture logs
+        // Capture logs with timestamp
         let processLog = '';
         process.stderr.on('data', (d) => {
             const msg = d.toString();
-            // console.log(msg); // Optional: verbose logging
+            // console.log(msg); 
             processLog += msg;
         });
 
         process.on('close', (code) => {
             if (code !== 0) {
                 console.error(`[V3 Error] Process exited with code ${code}`);
-                // Return last 500 chars of log to user
-                const errDetails = processLog.slice(-1000).replace(/\n/g, ' ');
+                // Return last 1500 chars of log to user
+                const errDetails = processLog.slice(-1500).replace(/\n/g, ' ');
                 return res.status(500).send(`Engine Error: ${errDetails}`);
             }
 
@@ -130,11 +131,8 @@ app.get('/api/download', async (req, res) => {
             console.log(`[V3 Success] Sending file: ${tempPath}`);
             res.download(tempPath, `${safeTitle}.mkv`, (err) => {
                 if (err) console.error('Send Error:', err);
-
                 // Cleanup
-                fs.unlink(tempPath, (e) => {
-                    if (e) console.error('Cleanup Warning:', e);
-                });
+                fs.unlink(tempPath, (e) => { if (e) console.error('Cleanup Warning:', e); });
             });
         });
 
@@ -144,10 +142,23 @@ app.get('/api/download', async (req, res) => {
     }
 });
 
-// Start
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n=== MEDIA DOWNLOADER V3 ENGINE STARTED ===`);
+// Start Server & Self-Test
+app.listen(PORT, '0.0.0.0', async () => {
+    console.log(`\n=== MEDIA DOWNLOADER V3.1 ENGINE STARTED ===`);
     console.log(`Port: ${PORT}`);
-    console.log(`FFmpeg: ${ffmpegPath}`);
-    console.log(`==========================================\n`);
+    console.log(`FFmpeg Path: ${ffmpegPath}`);
+
+    // Self-Test: Verification of FFmpeg
+    try {
+        const { execSync } = require('child_process');
+        // Ensure executable
+        try { fs.chmodSync(ffmpegPath, '755'); } catch (e) { }
+
+        const version = execSync(`${ffmpegPath} -version`).toString().split('\n')[0];
+        console.log(`✅ FFmpeg Verified: ${version}`);
+    } catch (e) {
+        console.error(`❌ FFmpeg Verification FAILED: ${e.message}`);
+        console.error(`CRITICAL: High Quality merges will fail.`);
+    }
+    console.log(`============================================\n`);
 });
