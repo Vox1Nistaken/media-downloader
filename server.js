@@ -137,10 +137,12 @@ app.get('/api/download', async (req, res) => {
         '--verbose'
     ];
 
-    // V4.1 FORCE TV CLIENT
-    // The previous 'ios' fallback caused "Only images available".
-    // We now rely 100% on the TV client + OAuth2 cache.
+    // V4.1 FORCE TV CLIENT + OAUTH2
+    // We must explicitly tell yt-dlp to use the "oauth2" account we authenticated with.
+    // Otherwise it acts as a Guest TV and gets blocked.
     args.push('--extractor-args', 'youtube:player_client=tv');
+    args.push('--username', 'oauth2');
+    args.push('--password', '');
 
     if (hasCookies) {
         args.push('--cookies', COOKIE_PATH);
@@ -149,6 +151,7 @@ app.get('/api/download', async (req, res) => {
 
     // 3. Execute
     try {
+        console.log(`[V4 Exec] yt-dlp ${args.join(' ')}`); // Log command for debug
         const process = spawn('yt-dlp', args);
         let errorLog = '';
 
