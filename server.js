@@ -248,7 +248,13 @@ app.get('/api/download', async (req, res) => {
             }
         });
 
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`Phoenix V4 Engine running on ${PORT}`);
-            console.log(`FFmpeg: ${ffmpegPath}`);
-        });
+    } catch (e) {
+        console.error('Download Endpoint Error:', e);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Phoenix V4 Engine running on ${PORT}`);
+    console.log(`FFmpeg: ${ffmpegPath}`);
+});
