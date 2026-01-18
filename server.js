@@ -97,8 +97,11 @@ app.get('/api/download', async (req, res) => {
             '-o', tempPath,
             '--no-playlist',
             '--no-check-certificates',
+            '--no-check-certificates',
             '--extractor-args', 'youtube:player_client=android',
-            '--force-ipv4'
+            '--force-ipv4',
+            '--ffmpeg-location', '/usr/bin/ffmpeg', // Explicitly use installed ffmpeg
+            '--verbose' // Help debug failures
         ];
 
         const ytProcess = spawn('yt-dlp', args);

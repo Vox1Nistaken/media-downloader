@@ -94,9 +94,19 @@
                             </div>
                         </div>
 
-                        <button id="downloadBtn" class="primary-btn">
+                        <div class="input-group">
+                            <input type="text" id="urlInput" placeholder="Paste video link here..." autocomplete="off">
+                            <select id="qualitySelect" class="quality-select">
+                                <option value="highest">Best Quality (4K/1080p)</option>
+                                <option value="1080p">1080p</option>
+                                <option value="720p">720p</option>
+                                <option value="480p">480p</option>
+                                <option value="audio">Audio Only (MP3)</option>
+                            </select>
+                        </div>
+                        <button id="downloadBtn" class="download-btn">
                             <span class="btn-text">Analyze & Download</span>
-                            <span class="loader"></span>
+                            <div class="loader"></div>
                         </button>
 
                         <div id="resultArea" class="result-area hidden">
