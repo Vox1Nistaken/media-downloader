@@ -87,7 +87,8 @@ app.get('/api/download', async (req, res) => {
         ];
 
         // spawn is robust for streaming
-        const ytProcess = spawn('npx', ['yt-dlp', ...args]);
+        // We use global 'yt-dlp' command now (User must install it)
+        const ytProcess = spawn('yt-dlp', args);
 
         ytProcess.stdout.pipe(res);
 
