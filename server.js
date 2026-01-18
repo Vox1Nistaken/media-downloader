@@ -83,12 +83,17 @@ app.get('/api/download', async (req, res) => {
             '--no-check-certificates',
             '--prefer-free-formats',
             '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            '--referer', 'https://www.google.com/'
+            '--referer', 'https://www.google.com/',
+            '--force-ipv4' // Critical for VPS to avoid blocks
         ];
 
         // spawn is robust for streaming
-        // We use global 'yt-dlp' command now (User must install it)
         const ytProcess = spawn('yt-dlp', args);
+
+        ytProcess.on('error', (err) => {
+            console.error('Failed to start yt-dlp process:', err);
+            if (!res.headersSent) res.status(500).send('Server Process Error');
+        });
 
         ytProcess.stdout.pipe(res);
 
