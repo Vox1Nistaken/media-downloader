@@ -53,11 +53,11 @@ function runYtDlp(args) {
         let stdout = '';
         let stderr = '';
 
-        // Timeout Logic (30 seconds)
+        // Timeout Logic (15 seconds) - Faster failover
         const timeout = setTimeout(() => {
             process.kill();
-            reject(new Error('yt-dlp Timed Out (30s)'));
-        }, 30000); // 30 seconds
+            reject(new Error('yt-dlp Timed Out (15s)'));
+        }, 15000); // 15 seconds
 
         process.stdout.on('data', (data) => {
             stdout += data.toString();
@@ -426,6 +426,24 @@ app.get('/api/download', async (req, res) => {
                     video.videos.sort((a, b) => b.bitrate - a.bitrate);
                     return res.redirect(video.videos[0].url);
                 }
+            }
+        }
+
+        // Cobalt Redirect
+        if (itag && (itag.startsWith('cobalt_') || itag === 'cobalt_picker')) {
+            console.log('🚀 Processing Cobalt Download for:', url);
+            try {
+                const cobaltData = await fallbackToCobalt(url);
+                // Try to find a direct url from the result
+                if (cobaltData && cobaltData.formats && cobaltData.formats.length > 0) {
+                    // If picker, try to match type manually or just take first
+                    const match = cobaltData.formats.find(f => f.url);
+                    if (match) return res.redirect(match.url);
+                }
+                throw new Error('Cobalt returned no usable URL');
+            } catch (e) {
+                console.error('Cobalt Download Failed:', e.message);
+                return res.status(500).send('Cobalt Download Failed');
             }
         }
 
