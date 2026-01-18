@@ -6,6 +6,7 @@ const { TwitterDL } = require('twitter-downloader');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const axios = require('axios'); // Ensure axios is required
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -157,6 +158,73 @@ function parseFormats(formats, platform) {
     return clean;
 }
 
+// Helper: Fallback to Cobalt API
+async function fallbackToCobalt(url) {
+    console.log('⚠️ Triggering Cobalt Fallback for:', url);
+    const instances = [
+        'https://api.cobalt.tools',
+        'https://co.wuk.sh',
+        'https://cobalt.api.kwiatekmiki.pl',
+        'https://api.cobalt.best'
+    ];
+
+    for (const domain of instances) {
+        try {
+            console.log(`Trying Cobalt instance: ${domain}`);
+            const response = await axios.post(`${domain}/api/json`, {
+                url: url,
+                vCodec: 'h264',
+                vQuality: 'max',
+                aFormat: 'mp3',
+                filenamePattern: 'basic'
+            }, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000 // 10s timeout per instance
+            });
+
+            const data = response.data;
+            if (data && (data.url || data.picker)) {
+                console.log(`✅ Cobalt Success via ${domain}`);
+
+                // Normalize to our format
+                // If picker provided, use it (audio/video variants), else use direct url
+                let formats = [];
+
+                if (data.picker) {
+                    formats = data.picker.map(p => ({
+                        quality: p.type === 'video' ? 'Best Video' : 'Audio', // Simplified
+                        itag: 'cobalt_picker', // Special handling if needed? Actually we just need url
+                        container: 'mp4',
+                        url: p.url,
+                        type: p.type
+                    }));
+                } else if (data.url) {
+                    formats.push({
+                        quality: 'Best Available (Cobalt)',
+                        itag: 'cobalt_direct',
+                        container: 'mp4',
+                        url: data.url,
+                        type: 'video'
+                    });
+                }
+
+                return {
+                    platform: 'Cobalt-Fallback',
+                    title: 'Media (via Cobalt)',
+                    thumbnail: null, // Cobalt sometimes doesn't give thumbnail in simple mode
+                    formats: formats
+                };
+            }
+        } catch (e) {
+            console.warn(`❌ Cobalt instance ${domain} failed:`, e.message);
+        }
+    }
+    throw new Error('All Cobalt fallback instances failed.');
+}
+
 // API: Get Info
 app.post('/api/info', async (req, res) => {
     try {
@@ -299,8 +367,17 @@ app.post('/api/info', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Info Error:', error);
-        res.status(500).json({ error: 'Failed to fetch info. ' + error.message });
+        console.error('Info Error (yt-dlp):', error.message);
+
+        // Try Fallback
+        try {
+            console.log('🔄 Attempting Cobalt Fallback...');
+            const cobaltData = await fallbackToCobalt(req.body.url);
+            return res.json(cobaltData);
+        } catch (fallbackError) {
+            console.error('Fallback Error:', fallbackError.message);
+            res.status(500).json({ error: 'Failed to fetch info. yt-dlp timed out and fallback failed.' });
+        }
     }
 });
 
