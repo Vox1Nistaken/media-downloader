@@ -7,13 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusBar = document.getElementById('statusBar');
     const qualitySelect = document.getElementById('qualitySelect');
 
-    // --- 1. HEALTH CHECK (The "Engine Light") ---
+    // --- 1. HEALTH CHECK ---
     checkSystemHealth();
     async function checkSystemHealth() {
         try {
-            // Show bar
             statusBar.classList.remove('hidden');
-
             const res = await fetch('/api/health');
             const data = await res.json();
 
@@ -35,8 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 authSpan.className = 'ok';
             } else {
                 authSpan.textContent = 'Guest (Limited)';
-                authSpan.className = ''; // Neutral, strictly speaking not an error but limits 4K
-                // Note: We don't block usage, just warn logic if 4K fails
+                authSpan.className = '';
             }
 
         } catch (e) {
@@ -47,12 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 2. PASTE ---
-    document.getElementById('pasteBtn').onclick = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            urlInput.value = text;
-        } catch (e) { }
-    };
+    const pasteBtn = document.getElementById('pasteBtn');
+    if (pasteBtn) {
+        pasteBtn.onclick = async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                urlInput.value = text;
+            } catch (e) { }
+        };
+    }
 
     // --- 3. DOWNLOAD FLOW ---
     downloadBtn.onclick = async () => {
@@ -90,12 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const q = qualitySelect.value;
         const qLabel = qualitySelect.options[qualitySelect.selectedIndex].text;
 
-        // Build Download Link - WE USE FETCH NOW to catch header errors before opening window
+        // Build Download Logic
         const dlUrl = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}&quality=${q}&title=${encodeURIComponent(data.title)}`;
-
-        // Check availability logic
-        // We actually can't "pre-check" easily without triggering the download stream.
-        // So we will just point the button to the link, BUT we will enhance the 'resultArea' logic.
 
         resultArea.innerHTML = `
             <img src="${data.thumbnail}" class="result-thumb" alt="thumb">
@@ -113,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Handle Logic
+        // Handle Real Download Click
         document.getElementById('realDownloadBtn').onclick = async () => {
             const btn = document.getElementById('realDownloadBtn');
             const status = document.getElementById('dlStatus');
@@ -122,9 +118,10 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             status.classList.add('hidden');
 
-            // Try fetch first to catch JSON errors
             try {
+                // Check Access First
                 const res = await fetch(dlUrl);
+
                 if (res.status === 403) {
                     const json = await res.json();
                     if (json.error === 'RESTRICTED_CONTENT') {
@@ -137,9 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                if (!res.ok) throw new Error('Download failed');
+                if (!res.ok) throw new Error('Server Error');
 
-                // If OK, we need to download the blob
+                // Trigger Blob Download
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -165,6 +162,71 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
-};
+
+    // --- UTILITY FUNCTIONS ---
+    function setLoading(bool) {
+        const btn = downloadBtn;
+        const txt = btn.querySelector('.btn-content');
+        const loader = btn.querySelector('.loader');
+
+        btn.disabled = bool;
+        if (bool) {
+            txt.classList.add('hidden');
+            loader.classList.remove('hidden');
+        } else {
+            txt.classList.remove('hidden');
+            loader.classList.add('hidden');
         }
-    });
+    }
+
+    function showError(msg) {
+        statusMsg.textContent = msg;
+        statusMsg.className = 'status-msg error';
+        statusMsg.classList.remove('hidden');
+    }
+
+    function formatDuration(sec) {
+        if (!sec) return '--:--';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // --- 4. ADMIN: COOKIE SAVE ---
+    const saveCookiesBtn = document.getElementById('saveCookiesBtn');
+    if (saveCookiesBtn) {
+        saveCookiesBtn.onclick = async () => {
+            const content = document.getElementById('cookieInput').value;
+            const msg = document.getElementById('cookieMsg');
+
+            if (content.length < 50) {
+                msg.textContent = 'Error: Cookie content too short!';
+                msg.style.color = 'red';
+                return;
+            }
+
+            saveCookiesBtn.disabled = true;
+            saveCookiesBtn.textContent = 'Saving...';
+
+            try {
+                const res = await fetch('/api/admin/cookies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cookies: content })
+                });
+
+                if (res.ok) {
+                    msg.textContent = 'Saved!';
+                    saveCookiesBtn.textContent = '✅ Success! Refreshing...';
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    throw new Error('Save failed');
+                }
+            } catch (e) {
+                saveCookiesBtn.textContent = 'Error';
+                msg.textContent = 'Failed to save.';
+                msg.style.color = 'red';
+            }
+        };
+    }
+});
