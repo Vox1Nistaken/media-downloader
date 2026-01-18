@@ -1,7 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const { spawn } = require('child_process');
 const ytDlp = require('yt-dlp-exec');
+
+// --- V3 CORE: STATIC FFMPEG ENGINE ---
+// This guarantees we have a working ffmpeg binary, regardless of VPS OS.
+const ffmpegPath = require('ffmpeg-static');
+console.log(`[V3 Engine] ffmpeg-static loaded at: ${ffmpegPath}`);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,159 +17,136 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 
-// API: Get Info
+// Temp Directory for High Quality Merge operations
+const tempDir = path.join(__dirname, 'temp');
+if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+
+// --- API: Get Video Info ---
 app.post('/api/info', async (req, res) => {
     try {
         const { url } = req.body;
         if (!url) return res.status(400).json({ error: 'URL required' });
 
-        console.log('Fetching info for:', url);
+        console.log(`[Info] Fetching metadata for: ${url}`);
 
-        // Get video info as JSON
         const output = await ytDlp(url, {
             dumpSingleJson: true,
-            noPlaylist: true, // Prevent processing entire playlists
+            noPlaylist: true,
             noCheckCertificates: true,
             noWarnings: true,
             preferFreeFormats: true,
-            addHeader: [
-                'referer:twitter.com',
-                'user-agent:googlebot'
-            ]
+            extractorArgs: 'youtube:player_client=android', // Spoof Android
+            forceIpv4: true // Bypass 403
         });
 
-        // Filter and map formats
-        // We select "best" video and audio usually, but let's send available formats to frontend
-        const formats = output.formats || [];
-
-        // Simplify for frontend
-        const simplifiedFormats = formats.map(f => ({
+        // Simplified Video/Audio mapping
+        const formats = (output.formats || []).map(f => ({
             quality: f.format_note || f.resolution || 'unknown',
             ext: f.ext,
             url: f.url,
             hasAudio: f.acodec !== 'none',
             hasVideo: f.vcodec !== 'none'
-        })).filter(f => f.url); // Ensure URL exists
+        })).filter(f => f.url);
 
         return res.json({
             platform: 'yt-dlp',
             title: output.title,
             thumbnail: output.thumbnail,
             duration: output.duration,
-            formats: simplifiedFormats,
-            // Direct video link (best quality usually)
-            downloadUrl: output.url // Sometimes present directly
+            formats: formats,
+            originalUrl: url
         });
 
     } catch (error) {
-        console.error('yt-dlp Error:', error);
+        console.error('[Yt-Dlp Error]:', error);
         res.status(500).json({ error: 'Failed to fetch media. ' + error.message });
     }
 });
 
-// API: High Quality Download (Download to Temp -> Merge -> Send -> Delete)
-const { spawn } = require('child_process');
-const fs = require('fs');
-
-// Ensure temp directory exists
-const tempDir = path.join(__dirname, 'temp');
-if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-
+// --- API: High Quality Download (V3 Engine) ---
 app.get('/api/download', async (req, res) => {
     const { url, quality, title } = req.query;
     if (!url) return res.status(400).send('URL required');
 
-    console.log(`Starting HQ Download: ${url} [${quality}]`);
+    console.log(`[Download] Starting V3 Task: ${url} [${quality}]`);
 
-    // Determine Format
-    // We try to merge best video+audio. If that fails (or ffmpeg missing), fallback to 'best' (single file)
+    // 1. Determine Format Strategy
+    // We use MKV container to allow direct stream copy of VP9/AV1 (4K) without transcoding errors.
+    // 'bestvideo+bestaudio' ensures we get the source quality components.
     let formatArg = 'bestvideo+bestaudio/best';
 
-    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best';
-    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best';
-    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best';
+    // Strict resolution filters
+    if (quality === '1080p') formatArg = 'bestvideo[height<=1080]+bestaudio/best';
+    else if (quality === '720p') formatArg = 'bestvideo[height<=720]+bestaudio/best';
+    else if (quality === '480p') formatArg = 'bestvideo[height<=480]+bestaudio/best';
     else if (quality === 'audio') formatArg = 'bestaudio/best';
 
-    // Generate Safe Filename
-    // Switch to MKV to support 4K/VP9 without transcoding issues
+    // 2. Output Path
     const safeTitle = (title || 'video').replace(/[^a-z0-9]/gi, '_').substring(0, 50);
     const tempFilename = `${Date.now()}_${safeTitle}.mkv`;
     const tempPath = path.join(tempDir, tempFilename);
 
+    // 3. Construct arguments for yt-dlp
+    // We explicitly pass the static ffmpeg path.
+    const args = [
+        url,
+        '-f', formatArg,
+        '--merge-output-format', 'mkv',
+        '-o', tempPath,
+        '--no-playlist',
+        '--no-check-certificates',
+        '--extractor-args', 'youtube:player_client=android',
+        '--force-ipv4',
+        '--ffmpeg-location', ffmpegPath, // <--- THE KEY FIX
+        '--verbose'
+    ];
+
+    console.log(`[V3 Engine] Executing with format: ${formatArg}`);
+
     try {
-        // Dynamic FFmpeg Path Detection
-        let ffmpegPath = '';
-        try {
-            const { execSync } = require('child_process');
-            ffmpegPath = execSync('which ffmpeg').toString().trim();
-            console.log(`Found ffmpeg at: ${ffmpegPath}`);
-        } catch (e) {
-            console.error('FFmpeg not found in PATH! Merging will fail.');
-        }
+        const process = spawn('yt-dlp', args);
 
-        console.log(`Using format: ${formatArg}`);
-
-        const args = [
-            url,
-            '-f', formatArg,
-            '--merge-output-format', 'mkv', // MKV supports almost all codecs (VP9, AV1)
-            '-o', tempPath,
-            '--no-playlist',
-            '--no-check-certificates',
-            '--extractor-args', 'youtube:player_client=android',
-            '--force-ipv4',
-            '--verbose'
-        ];
-
-        // Only add ffmpeg-location if found
-        if (ffmpegPath) {
-            args.push('--ffmpeg-location', ffmpegPath);
-        }
-
-        const ytProcess = spawn('yt-dlp', args);
-
-        // Logging & Error Capture
-        let errorLog = '';
-        ytProcess.stderr.on('data', (data) => {
-            const msg = data.toString();
-            console.log(`yt-dlp prog: ${msg}`);
-            errorLog += msg;
+        // Capture logs
+        let processLog = '';
+        process.stderr.on('data', (d) => {
+            const msg = d.toString();
+            // console.log(msg); // Optional: verbose logging
+            processLog += msg;
         });
 
-        ytProcess.on('close', (code) => {
+        process.on('close', (code) => {
             if (code !== 0) {
-                console.error(`Download failed with code ${code}`);
-                // Send the specific errorlog to the user to help debug
-                // Limit log size to avoid huge headers/body
-                const cleanLog = errorLog.slice(-500).replace(/\n/g, ' ');
-                return res.status(500).send(`Server Error: ${cleanLog}`);
+                console.error(`[V3 Error] Process exited with code ${code}`);
+                // Return last 500 chars of log to user
+                const errDetails = processLog.slice(-1000).replace(/\n/g, ' ');
+                return res.status(500).send(`Engine Error: ${errDetails}`);
             }
 
-            // Check if file exists
             if (!fs.existsSync(tempPath)) {
-                return res.status(500).send('File not created. Check logs.');
+                return res.status(500).send('Error: Output file not found after download.');
             }
 
-            // Send File to User
-            const userFilename = `${safeTitle}.mkv`;
-            res.download(tempPath, userFilename, (err) => {
+            console.log(`[V3 Success] Sending file: ${tempPath}`);
+            res.download(tempPath, `${safeTitle}.mkv`, (err) => {
                 if (err) console.error('Send Error:', err);
 
-                // Delete file after sending (or error)
-                fs.unlink(tempPath, (unlinkErr) => {
-                    if (unlinkErr) console.error('Cleanup Error:', unlinkErr);
-                    else console.log('Temp file cleaned up:', tempPath);
+                // Cleanup
+                fs.unlink(tempPath, (e) => {
+                    if (e) console.error('Cleanup Warning:', e);
                 });
             });
         });
 
-    } catch (error) {
-        console.error('Download Setup Error:', error);
-        if (!res.headersSent) res.status(500).send('Server Error');
+    } catch (err) {
+        console.error('Spawn Error:', err);
+        res.status(500).send('Internal Server Error');
     }
 });
 
-// Start Server
+// Start
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Backend running on port ${PORT}`);
+    console.log(`\n=== MEDIA DOWNLOADER V3 ENGINE STARTED ===`);
+    console.log(`Port: ${PORT}`);
+    console.log(`FFmpeg: ${ffmpegPath}`);
+    console.log(`==========================================\n`);
 });
