@@ -114,13 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('realDownloadBtn');
             const status = document.getElementById('dlStatus');
 
+            // DYNAMICALLY GET VALUE (Fixes the "Ignoring Selection" bug)
+            const currentQ = qualitySelect.value;
+            const dynamicDlUrl = `/api/download?url=${encodeURIComponent(data.originalUrl || urlInput.value)}&quality=${currentQ}&title=${encodeURIComponent(data.title)}`;
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             status.classList.add('hidden');
 
             try {
                 // Check Access First
-                const res = await fetch(dlUrl);
+                const res = await fetch(dynamicDlUrl);
 
                 if (res.status === 403) {
                     const json = await res.json();
@@ -141,7 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}.mp4`;
+
+                // Adjust extension based on type
+                let ext = 'mp4';
+                if (currentQ === 'audio') ext = 'mp3'; // Hint for the filename (though server sends .mp4 container usually)
+
+                a.download = `${data.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50)}.${ext}`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
