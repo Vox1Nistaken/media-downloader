@@ -118,10 +118,24 @@ app.get('/api/download', async (req, res) => {
     const { url, quality } = req.query;
     try {
         // Re-scrape to get fresh link
+        // Re-scrape to get fresh link
         if (url.includes('youtube')) {
             const data = await youtubedl(url);
-            const link = await data.video[quality].download(); // hypothetical API usage
-            if (link) return res.redirect(link);
+            // Check if quality exists in video object
+            if (data.video && data.video[quality]) {
+                const downloadMethod = data.video[quality].download;
+                if (typeof downloadMethod === 'function') {
+                    const link = await downloadMethod();
+                    if (link) return res.redirect(link);
+                }
+            }
+        } else {
+            // For others, we try savefrom again or similar
+            const data = await savefrom(url);
+            if (Array.isArray(data)) {
+                const match = data.find(item => item.quality === quality || item.url);
+                if (match && match.url) return res.redirect(match.url);
+            }
         }
         // Fallback
         res.status(400).send('Download link generation failed');

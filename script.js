@@ -162,7 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
             buttonsHtml = data.formats.map(f => {
                 // If url is valid http link, use it. Else construct backend link.
                 let link = f.url;
-                if (!link || !link.startsWith('http')) {
+                // Type check to avoid .startsWith error
+                if (!link || typeof link !== 'string' || !link.startsWith('http')) {
+                    // If backend returned 'WILL_RESOLVE_ON_DOWNLOAD' or invalid link, use proxy endpoint
                     link = `/api/download?url=${encodedUrl}&quality=${f.itag || f.quality}&title=${encodeURIComponent(safeTitle)}`;
                 }
 
