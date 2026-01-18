@@ -172,3 +172,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 3. COOKIES REMOVED (Admin Panel Hidden) ---
     // User requested to remove the UI. Logic requires manual server access if needed.
 });
+
+// --- CUSTOM DROPDOWN LOGIC ---
+// Exposed to global scope for onclick events in HTML
+window.toggleDropdown = function () {
+    const dropdown = document.getElementById('customQualityDropdown');
+    dropdown.classList.toggle('open');
+};
+
+window.selectQuality = function (value, text) {
+    // 1. Update UI Text
+    document.getElementById('selectedQualityText').textContent = text;
+
+    // 2. Update Hidden Input Value (which the downloader reads)
+    document.getElementById('qualitySelect').value = value;
+
+    // 3. Update Active Styling
+    const items = document.querySelectorAll('.dropdown-item');
+    items.forEach(item => item.classList.remove('active'));
+    event.target.classList.add('active');
+
+    // 4. Close Dropdown
+    document.getElementById('customQualityDropdown').classList.remove('open');
+};
+
+// Close dropdown if clicking outside
+window.onclick = function (event) {
+    if (!event.target.closest('.custom-dropdown')) {
+        const dropdown = document.getElementById('customQualityDropdown');
+        if (dropdown && dropdown.classList.contains('open')) {
+            dropdown.classList.remove('open');
+        }
+    }
+};

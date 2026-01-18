@@ -58,14 +58,29 @@
 
                 <!-- Controls -->
                 <div class="controls-row">
-                    <div class="select-wrapper">
-                        <i class="fa-solid fa-sliders"></i>
-                        <select id="qualitySelect">
-                            <option value="highest">Max Quality (1080p/2K MP4)</option>
-                            <option value="1080p">1080p Full HD (MP4)</option>
-                            <option value="720p">720p HD (MP4)</option>
-                            <option value="audio">Audio Only (MP3)</option>
-                        </select>
+                    <div class="custom-dropdown" id="customQualityDropdown">
+                        <div class="dropdown-selected" onclick="toggleDropdown()">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span id="selectedQualityText">Max Quality (1080p/2K MP4)</span>
+                            <i class="fa-solid fa-chevron-down arrow-icon"></i>
+                        </div>
+                        <div class="dropdown-options">
+                            <div class="dropdown-item active"
+                                onclick="selectQuality('highest', 'Max Quality (1080p/2K MP4)')">
+                                Max Quality (1080p/2K MP4)
+                            </div>
+                            <div class="dropdown-item" onclick="selectQuality('1080p', '1080p Full HD (MP4)')">
+                                1080p Full HD (MP4)
+                            </div>
+                            <div class="dropdown-item" onclick="selectQuality('720p', '720p HD (MP4)')">
+                                720p HD (MP4)
+                            </div>
+                            <div class="dropdown-item" onclick="selectQuality('audio', 'Audio Only (MP3)')">
+                                Audio Only (MP3)
+                            </div>
+                        </div>
+                        <!-- Hidden Input to store actual value for JS -->
+                        <input type="hidden" id="qualitySelect" value="highest">
                     </div>
                 </div>
 
