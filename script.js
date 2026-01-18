@@ -171,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
-}
 
     // --- UTILITY FUNCTIONS ---
     function setLoading(bool) {
