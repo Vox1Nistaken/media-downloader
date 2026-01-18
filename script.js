@@ -164,71 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.innerHTML = '<i class="fa-solid fa-download"></i> Retry';
             }
         };
-
-        // --- UTIL ---
-        function setLoading(bool) {
-            const btn = downloadBtn;
-            const txt = btn.querySelector('.btn-content');
-            const loader = btn.querySelector('.loader');
-
-            btn.disabled = bool;
-            if (bool) {
-                txt.classList.add('hidden');
-                loader.classList.remove('hidden');
-            } else {
-                txt.classList.remove('hidden');
-                loader.classList.add('hidden');
-            }
-        }
-
-        function showError(msg) {
-            statusMsg.textContent = msg;
-            statusMsg.className = 'status-msg error';
-            statusMsg.classList.remove('hidden');
-        }
-
-        function formatDuration(sec) {
-            if (!sec) return '--:--';
-            const m = Math.floor(sec / 60);
-            const s = Math.floor(sec % 60);
-            return `${m}:${s.toString().padStart(2, '0')}`;
-        }
-
-        // --- 4. ADMIN: COOKIE SAVE ---
-        const saveCookiesBtn = document.getElementById('saveCookiesBtn');
-        if (saveCookiesBtn) {
-            saveCookiesBtn.onclick = async () => {
-                const content = document.getElementById('cookieInput').value;
-                const msg = document.getElementById('cookieMsg');
-
-                if (content.length < 50) {
-                    msg.textContent = 'Error: Cookie content too short!';
-                    msg.style.color = 'red';
-                    return;
-                }
-
-                saveCookiesBtn.disabled = true;
-                saveCookiesBtn.textContent = 'Saving...';
-
-                try {
-                    const res = await fetch('/api/admin/cookies', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cookies: content })
-                    });
-
-                    if (res.ok) {
-                        msg.textContext = 'Saved!';
-                        saveCookiesBtn.textContent = '✅ Success! Refreshing...';
-                        setTimeout(() => location.reload(), 2000);
-                    } else {
-                        throw new Error('Save failed');
-                    }
-                } catch (e) {
-                    saveCookiesBtn.textContent = 'Error';
-                    msg.textContent = 'Failed to save.';
-                    msg.style.color = 'red';
-                }
-            };
+    }
+};
         }
     });
