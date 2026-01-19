@@ -129,7 +129,7 @@
     <script>
         async function loadStats() {
             try {
-                const response = await fetch('http://localhost:3000/api/stats');
+                const response = await fetch('/api/stats');
                 const stats = await response.json();
 
                 document.getElementById('totalDownloads').innerText = stats.totalDownloads;
@@ -171,16 +171,22 @@
                     body: JSON.stringify({ cookies })
                 });
 
-                const data = await res.json();
-                if (res.ok) {
-                    statusEl.innerText = data.message;
-                    statusEl.className = 'status-success';
-                } else {
-                    throw new Error(data.error);
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (res.ok) {
+                        statusEl.innerText = data.message;
+                        statusEl.className = 'status-success';
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } catch (jsonErr) {
+                    throw new Error(`Server returned non-JSON: ${text.substring(0, 100)}...`);
                 }
             } catch (e) {
                 statusEl.innerText = 'Error: ' + e.message;
                 statusEl.className = 'status-failed';
+                console.error(e);
             }
         }
 
