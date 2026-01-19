@@ -224,14 +224,21 @@ app.get('/api/download', async (req, res) => {
     if (quality === 'audio') {
         args.push('-f', 'bestaudio/best');
     } else {
-        // RESTORED: Sort logic instead of strict format selection
-        args.push('-S', 'res:1440,vcodec:h264,acodec:m4a');
+        // V9: RELIABLE 2K MAX (User Request) + ANDROID
+        // "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
+        // This asks for the best possible video that is NOT 4K/8K, but up to 2K.
+        args.push('-f', 'bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best[height<=1440]');
+
+        // Force merge to mp4 just in case
+        args.push('--merge-output-format', 'mp4');
 
         const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
         if (isYoutube) {
+            // FORCE ANDROID CLIENT (Signature Safe)
+            args.push('--extractor-args', 'youtube:player_client=android');
+
             if (hasCookies) {
                 args.push('--cookies', COOKIE_PATH);
-                args.push('--extractor-args', 'youtube:player_client=android');
             }
         } else {
             if (hasCookies) args.push('--cookies', COOKIE_PATH);
