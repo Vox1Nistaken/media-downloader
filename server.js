@@ -108,10 +108,9 @@ app.post('/api/info', async (req, res) => {
 
         if (isYoutube) {
             if (hasCookies) {
-                // args.cookies is already set above
-                args.extractorArgs = 'youtube:player_client=android';
+                args.extractorArgs = 'youtube:player_client=web';
             } else {
-                args.extractorArgs = 'youtube:player_client=android'; // Always use Android
+                args.extractorArgs = 'youtube:player_client=web'; // Always use Web
             }
         } else {
             // V6.3: MOBILE SPOOFING (Better for IG/TikTok)
@@ -203,46 +202,45 @@ app.get('/api/download', async (req, res) => {
     const tempPath = path.join(tempDir, tempFilename);
 
     // RESTORED ARGUMENTS (From Step 30 logs)
+    // RESTORED ARGUMENTS (Cleaned up per ChatGPT suggestions)
     const args = [
         url,
-        '--merge-output-format', 'mp4',
         '-o', tempPath,
         '--no-playlist',
-        '--no-check-certificates', // Re-adding as it was in the original "working" version
+        // '--no-check-certificates', // Removed, better security
         '--force-ipv4',
         '--ffmpeg-location', ffmpegPath,
-        '--verbose', // Debugging helpful
+        '--verbose',
         // V6.5 PERFORMANCE TUNING
-        '-N', '8', // Restoring 8
+        '-N', '8',
         '--buffer-size', '16M',
         '--ignore-errors',
         '--no-warnings',
-        '--progress', // Force progress
-        '--newline'   // Critical for parsing
+        '--progress',
+        '--newline'
     ];
 
     if (quality === 'audio') {
         args.push('-f', 'bestaudio/best');
     } else {
-        // V9: RELIABLE 2K MAX (User Request) + ANDROID
-        // "bestvideo[height<=1440]+bestaudio/best[height<=1440]"
-        // This asks for the best possible video that is NOT 4K/8K, but up to 2K.
-        args.push('-f', 'bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best[height<=1440]');
+        // V10: SIGNATURE FIX - Using ChatGPT Recommended "Web" Strategy
+        // -f "bv*+ba/b" is standard, but we want to limit to 2K.
+        args.push('-f', 'bestvideo[height<=1440]+bestaudio/best[height<=1440]');
 
-        // Force merge to mp4 just in case
+        // Force merge to mp4
         args.push('--merge-output-format', 'mp4');
 
         const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
         if (isYoutube) {
-            // FORCE ANDROID CLIENT (Signature Safe)
-            args.push('--extractor-args', 'youtube:player_client=android');
+            // FORCE WEB CLIENT (Reliable for signature solving)
+            args.push('--extractor-args', 'youtube:player_client=web');
 
             if (hasCookies) {
                 args.push('--cookies', COOKIE_PATH);
             }
         } else {
             if (hasCookies) args.push('--cookies', COOKIE_PATH);
-            args.push('--user-agent', 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36');
+            args.push('--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         }
     }
 
