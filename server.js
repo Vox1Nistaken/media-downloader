@@ -70,7 +70,7 @@ app.get('/api/health', (req, res) => {
         status: 'online',
         ffmpeg: ffmpegStatus,
         auth: authStatus,
-        version: 'v4.0.0'
+        version: 'v4.5.0'
     });
 });
 
