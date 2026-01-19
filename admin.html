@@ -109,6 +109,21 @@
                     </table>
                 </div>
             </section>
+
+            <section class="cookie-manager" style="text-align: left; margin-top: 2rem;">
+                <h1>Cookie <span class="gradient-text">Manager</span></h1>
+                <div class="admin-card">
+                    <p style="color: #ccc; margin-bottom: 1rem;">Paste your Netscape formatted cookies.txt content here
+                        to authenticate the server.</p>
+                    <textarea id="cookieInput"
+                        style="width: 100%; height: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 1rem; border-radius: 8px;"
+                        placeholder="# Netscape HTTP Cookie File..."></textarea>
+                    <button onclick="saveCookies()"
+                        style="margin-top: 1rem; padding: 0.8rem 1.5rem; background: #a855f7; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;">Save
+                        Cookies</button>
+                    <p id="cookieStatus" style="margin-top: 1rem; font-weight: bold;"></p>
+                </div>
+            </section>
         </main>
     </div>
     <script>
@@ -135,6 +150,37 @@
                 });
             } catch (e) {
                 console.error("Failed to load stats", e);
+            }
+        }
+
+        async function saveCookies() {
+            const cookies = document.getElementById('cookieInput').value;
+            const statusEl = document.getElementById('cookieStatus');
+
+            if (!cookies) {
+                statusEl.innerText = 'Please paste cookie content!';
+                statusEl.className = 'status-failed';
+                return;
+            }
+
+            try {
+                statusEl.innerText = 'Saving...';
+                const res = await fetch('/api/admin/cookies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cookies })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    statusEl.innerText = data.message;
+                    statusEl.className = 'status-success';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                statusEl.innerText = 'Error: ' + e.message;
+                statusEl.className = 'status-failed';
             }
         }
 
