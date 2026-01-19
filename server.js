@@ -109,9 +109,9 @@ app.post('/api/info', async (req, res) => {
         if (isYoutube) {
             if (hasCookies) {
                 // args.cookies is already set above
-                args.extractorArgs = 'youtube:player_client=tv';
+                args.extractorArgs = 'youtube:player_client=android';
             } else {
-                args.extractorArgs = 'youtube:player_client=android'; // For info fetching, Android is still okay usually
+                args.extractorArgs = 'youtube:player_client=android'; // Always use Android
             }
         } else {
             // V6.3: MOBILE SPOOFING (Better for IG/TikTok)
@@ -231,7 +231,7 @@ app.get('/api/download', async (req, res) => {
         if (isYoutube) {
             if (hasCookies) {
                 args.push('--cookies', COOKIE_PATH);
-                args.push('--extractor-args', 'youtube:player_client=tv');
+                args.push('--extractor-args', 'youtube:player_client=android');
             }
         } else {
             if (hasCookies) args.push('--cookies', COOKIE_PATH);
