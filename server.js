@@ -21,7 +21,29 @@ const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
 // Auth File Path
+// Auth File Path
 const COOKIE_PATH = path.join(__dirname, 'cookies.txt');
+const STATS_PATH = path.join(__dirname, 'stats.json');
+
+// --- STATS SYSTEM ---
+let systemStats = { totalDownloads: 0, recentRequests: [] };
+
+// Load Stats
+if (fs.existsSync(STATS_PATH)) {
+    try {
+        systemStats = JSON.parse(fs.readFileSync(STATS_PATH, 'utf8'));
+    } catch (e) { console.error('Stats load invalid', e); }
+}
+
+function saveStats() {
+    try { fs.writeFileSync(STATS_PATH, JSON.stringify(systemStats, null, 2)); } catch (e) { }
+}
+
+function addActivity(type, url, status) {
+    systemStats.recentRequests.unshift({ timestamp: Date.now(), type, url, status });
+    if (systemStats.recentRequests.length > 50) systemStats.recentRequests.pop();
+    saveStats();
+}
 
 // --- API: HEALTH CHECK (The "Engine Light") ---
 app.get('/api/health', (req, res) => {
@@ -50,6 +72,11 @@ app.get('/api/health', (req, res) => {
         auth: authStatus,
         version: 'v4.0.0'
     });
+});
+
+// --- API: STATS (New for Admin Panel) ---
+app.get('/api/stats', (req, res) => {
+    res.json(systemStats);
 });
 
 // --- API: INFO FETCH ---
@@ -270,6 +297,12 @@ app.get('/api/download', async (req, res) => {
                 if (clientId) sendProgress(clientId, { status: 'complete', percent: 100, text: 'Finalizing...' });
 
                 console.log(`[Download Complete] ${tempPath}`);
+
+                // Update Stats
+                systemStats.totalDownloads++;
+                addActivity('download', url, 'Success');
+                saveStats();
+
                 if (!fs.existsSync(tempPath)) {
                     if (!res.headersSent) res.status(500).json({ error: 'File missing after successful download process' });
                     return;
@@ -287,6 +320,9 @@ app.get('/api/download', async (req, res) => {
                 if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
                 if (clientId) sendProgress(clientId, { status: 'error', text: 'Failed' });
+
+                addActivity('download', url, 'Failed');
+                saveStats();
 
                 const err = errorLog.toLowerCase();
                 if (err.includes('sign in') || err.includes('login required')) {

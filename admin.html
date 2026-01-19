@@ -4,194 +4,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediaX Admin Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>ZaveMedia Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        primary: '#6366f1',
+                        accent: '#ec4899',
+                        success: '#22c55e',
+                        danger: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .admin-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border: var(--glass-border);
-            border-radius: 24px;
-            padding: 2rem;
-            margin-bottom: 2rem;
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            color: #ccc;
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        th,
-        td {
-            text-align: left;
-            padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .gradient-text {
+            background: linear-gradient(to right, #6366f1, #ec4899);
+            -webkit-background-clip: text;
+            color: transparent;
         }
 
-        th {
-            color: #fff;
-            font-weight: 600;
+        ::-webkit-scrollbar {
+            width: 8px;
         }
 
-        .status-success {
-            color: #4ade80;
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
         }
 
-        .status-failed {
-            color: #f87171;
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
         }
 
-        .stat-box {
-            display: inline-block;
-            background: rgba(15, 23, 42, 0.8);
-            padding: 1.5rem;
-            border-radius: 12px;
-            min-width: 200px;
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #a855f7;
-            display: block;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
         }
     </style>
 </head>
 
-<body>
-    <div class="background-globes">
-        <div class="globe globe-1"></div>
-        <div class="globe globe-2"></div>
-    </div>
+<body class="min-h-screen p-6 md:p-12">
 
-    <div class="container">
-        <header>
-            <div class="logo">
-                <i class="fa-solid fa-lock"></i>
-                <span>Admin<span class="highlight">Panel</span></span>
+    <div class="max-w-6xl mx-auto space-y-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-black tracking-tighter uppercase">
+                    Admin<span class="gradient-text">Panel</span>
+                </h1>
+                <p class="text-slate-400 mt-2">Server Management Dashboard</p>
             </div>
-            <nav>
-                <a href="index.html">Back to Downloader</a>
-            </nav>
-        </header>
+            <a href="/" class="text-sm font-medium text-slate-400 hover:text-white transition">Back to Main Site
+                &rarr;</a>
+        </div>
 
-        <main>
-            <section class="hero" style="text-align: left;">
-                <h1>System <span class="gradient-text">Overview</span></h1>
-
-                <div class="admin-card">
-                    <div class="stat-box">
-                        <span class="stat-number" id="totalDownloads">0</span>
-                        <span>Total Downloads</span>
-                    </div>
+        <!-- System Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Stat Card -->
+            <div class="glass rounded-2xl p-8 flex items-center justify-between relative overflow-hidden group">
+                <div class="absolute inset-0 bg-primary/10 group-hover:bg-primary/20 transition duration-500"></div>
+                <div class="relative z-10">
+                    <h3 class="text-slate-400 text-sm font-bold uppercase tracking-wider">Total Downloads</h3>
+                    <p id="totalDownloads" class="text-6xl font-black mt-2 text-white">0</p>
                 </div>
-
-                <div class="admin-card">
-                    <h3 style="margin-bottom: 1.5rem;">Recent Activity</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Type</th>
-                                <th>URL</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activityTable">
-                            <tr>
-                                <td colspan="4">Loading...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="relative z-10 text-primary opacity-80">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                 </div>
-            </section>
+            </div>
 
-            <section class="cookie-manager" style="text-align: left; margin-top: 2rem;">
-                <h1>Cookie <span class="gradient-text">Manager</span></h1>
-                <div class="admin-card">
-                    <p style="color: #ccc; margin-bottom: 1rem;">Paste your Netscape formatted cookies.txt content here
-                        to authenticate the server.</p>
-                    <textarea id="cookieInput"
-                        style="width: 100%; height: 200px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 1rem; border-radius: 8px;"
-                        placeholder="# Netscape HTTP Cookie File..."></textarea>
-                    <button onclick="saveCookies()"
-                        style="margin-top: 1rem; padding: 0.8rem 1.5rem; background: #a855f7; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;">Save
-                        Cookies</button>
-                    <p id="cookieStatus" style="margin-top: 1rem; font-weight: bold;"></p>
+            <!-- Server Status Card -->
+            <div class="glass rounded-2xl p-8 flex items-center justify-between relative overflow-hidden group">
+                <div class="absolute inset-0 bg-success/10 group-hover:bg-success/20 transition duration-500"></div>
+                <div class="relative z-10">
+                    <h3 class="text-slate-400 text-sm font-bold uppercase tracking-wider">Engine Status</h3>
+                    <p id="serverStatus" class="text-4xl font-black mt-2 text-success">ONLINE</p>
+                    <p class="text-xs text-slate-500 mt-1">Phoenix Engine V4.0</p>
                 </div>
-            </section>
-        </main>
-    </div>
-    <script>
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/stats');
-                const stats = await response.json();
+                <div class="relative z-10 text-success opacity-80">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
 
-                document.getElementById('totalDownloads').innerText = stats.totalDownloads;
-
-                const tbody = document.getElementById('activityTable');
-                tbody.innerHTML = '';
-
-                stats.recentRequests.forEach(req => {
-                    const row = `
+        <!-- Recent Activity -->
+        <div class="glass rounded-2xl p-6 md:p-8">
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Recent Activity
+            </h2>
+            <div class="overflow-x-auto rounded-lg border border-slate-700">
+                <table class="w-full text-left font-mono text-sm">
+                    <thead class="bg-darker text-slate-400">
                         <tr>
-                            <td>${new Date(req.timestamp).toLocaleTimeString()}</td>
-                            <td>${req.type.toUpperCase()}</td>
-                            <td title="${req.url}">${req.url}</td>
-                            <td class="${req.status === 'Success' ? 'status-success' : 'status-failed'}">${req.status}</td>
+                            <th class="p-4">Time</th>
+                            <th class="p-4">Type</th>
+                            <th class="p-4">URL / Info</th>
+                            <th class="p-4">Status</th>
                         </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                    </thead>
+                    <tbody id="activityTable" class="divide-y divide-slate-700 bg-dark/50">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-slate-500">Connecting to Neural Net...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cookie Manager -->
+        <div class="glass rounded-2xl p-6 md:p-8 border-l-4 border-accent">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold">Authentication Manager</h2>
+                    <p class="text-slate-400 text-sm mt-1">Manage <code>cookies.txt</code> to bypass geo-restrictions.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-darker rounded-xl p-4 border border-slate-700">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Netscape Cookie
+                    Format</label>
+                <textarea id="cookieInput"
+                    class="w-full h-48 bg-transparent text-slate-300 font-mono text-xs focus:outline-none resize-y placeholder-slate-600"
+                    placeholder="# Netscape HTTP Cookie File&#10;# https://curl.haxx.se/rfc/cookie_spec.html&#10;.youtube.com	TRUE	/	TRUE	1799999999	VISITOR_INFO1_LIVE	..."></textarea>
+            </div>
+
+            <div class="flex justify-between items-center mt-6">
+                <p id="cookieStatus" class="text-sm font-medium text-slate-400">Wait...</p>
+                <button onclick="saveCookies()"
+                    class="bg-gradient-to-r from-primary to-accent hover:from-primary/80 hover:to-accent/80 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-primary/25 transition transform hover:-translate-y-1">
+                    Save Cookies
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        const API_BASE = '/api'; // Relative path is simpler and robust
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStats();
+            // Poll for updates every 5 seconds
+            setInterval(fetchStats, 5000);
+        });
+
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_BASE}/stats`);
+                if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+                const stats = await res.json();
+
+                // Update Total Downloads
+                animateValue("totalDownloads", parseInt(document.getElementById("totalDownloads").innerText), stats.totalDownloads || 0, 1000);
+
+                // Update Table
+                const tbody = document.getElementById('activityTable');
+                if (stats.recentRequests && stats.recentRequests.length > 0) {
+                    tbody.innerHTML = stats.recentRequests.map(req => `
+                        <tr class="hover:bg-white/5 transition">
+                            <td class="p-4 text-slate-400">${new Date(req.timestamp).toLocaleTimeString()}</td>
+                            <td class="p-4 font-bold text-slate-200">${req.type.toUpperCase()}</td>
+                            <td class="p-4 text-slate-400 max-w-xs truncate" title="${req.url}">${req.url}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${req.status === 'Success' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}">
+                                    ${req.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No activity recorded yet settings.</td></tr>`;
+                }
+
+                // Check Health/Cookie Status indirectly via info
+                document.getElementById('serverStatus').innerText = 'ONLINE';
+                document.getElementById('serverStatus').classList.remove('text-danger');
+                document.getElementById('serverStatus').classList.add('text-success');
+
             } catch (e) {
-                console.error("Failed to load stats", e);
+                console.error("Stats Error:", e);
+                document.getElementById('serverStatus').innerText = 'OFFLINE';
+                document.getElementById('serverStatus').classList.remove('text-success');
+                document.getElementById('serverStatus').classList.add('text-danger');
             }
         }
 
         async function saveCookies() {
-            const cookies = document.getElementById('cookieInput').value;
-            const statusEl = document.getElementById('cookieStatus');
+            const input = document.getElementById('cookieInput');
+            const status = document.getElementById('cookieStatus');
+            const content = input.value.trim();
 
-            if (!cookies) {
-                statusEl.innerText = 'Please paste cookie content!';
-                statusEl.className = 'status-failed';
+            if (!content) {
+                showStatus('Please paste cookie content first!', 'error');
                 return;
             }
 
             try {
-                statusEl.innerText = 'Saving...';
-                const res = await fetch('/api/admin/cookies', {
+                showStatus('Saving...', 'loading');
+
+                const res = await fetch(`${API_BASE}/admin/cookies`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cookies })
+                    body: JSON.stringify({ cookies: content })
                 });
 
+                // Robust response handling
                 const text = await res.text();
+                let data;
                 try {
-                    const data = JSON.parse(text);
-                    if (res.ok) {
-                        statusEl.innerText = data.message;
-                        statusEl.className = 'status-success';
-                    } else {
-                        throw new Error(data.error);
-                    }
-                } catch (jsonErr) {
-                    throw new Error(`Server returned non-JSON: ${text.substring(0, 100)}...`);
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("Server returned invalid JSON. It might be sending an HTML error page. Check logs.");
                 }
+
+                if (res.ok) {
+                    showStatus(data.message || 'Cookies Saved Successfully!', 'success');
+                    input.value = ''; // Clear input on success
+                } else {
+                    throw new Error(data.error || 'Failed to save cookies.');
+                }
+
             } catch (e) {
-                statusEl.innerText = 'Error: ' + e.message;
-                statusEl.className = 'status-failed';
                 console.error(e);
+                showStatus(`Error: ${e.message}`, 'error');
             }
         }
 
-        loadStats();
-        setInterval(loadStats, 5000); // Refresh every 5s
+        function showStatus(msg, type) {
+            const el = document.getElementById('cookieStatus');
+            el.innerText = msg;
+
+            if (type === 'error') el.className = 'text-sm font-bold text-danger animate-pulse';
+            else if (type === 'success') el.className = 'text-sm font-bold text-success';
+            else if (type === 'loading') el.className = 'text-sm font-bold text-primary animate-pulse';
+            else el.className = 'text-sm font-medium text-slate-400';
+        }
+
+        // Helper for smooth number animation
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const obj = document.getElementById(id);
+            const range = end - start;
+            const minTimer = 50;
+            let stepTime = Math.abs(Math.floor(duration / range));
+            stepTime = Math.max(stepTime, minTimer);
+            const startTime = new Date().getTime();
+            const endTime = startTime + duration;
+            let timer;
+
+            function run() {
+                const now = new Date().getTime();
+                const remaining = Math.max((endTime - now) / duration, 0);
+                const value = Math.round(end - (remaining * range));
+                obj.innerHTML = value;
+                if (value == end) {
+                    clearInterval(timer);
+                }
+            }
+
+            timer = setInterval(run, stepTime);
+            run();
+        }
     </script>
 </body>
 
